@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>El Vengador del Desierto: La Furia de los 3 Ojos</title>
+  <meta name="description" content="Juego arcade de acción en el desierto nocturno. Controla al pistolero esqueleto, elimina monstruos terrestres y voladores, y sobrevive hasta los 5000 puntos para derrotar al colosal Monstruo de 3 Ojos.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700;900&family=Press+Start+2P&family=Outfit:wght@400;600;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./style.css">
+</head>
+<body>
+  <!-- Contenedor Principal del Juego -->
+  <div id="game-app">
+    
+    <!-- Barra Superior / HUD -->
+    <header id="top-hud">
+      <div class="hud-group player-stats">
+        <div class="stat-badge hp-container">
+          <span class="hud-label">VIDA</span>
+          <div class="health-bar-wrapper">
+            <div id="hp-bar-fill" class="bar-fill hp-fill" style="width: 100%;"></div>
+            <span id="hp-text">100 / 100</span>
+          </div>
+          <div id="hearts-display" class="hearts-row">
+            <span class="heart active">💀</span>
+            <span class="heart active">💀</span>
+            <span class="heart active">💀</span>
+            <span class="heart active">💀</span>
+            <span class="heart active">💀</span>
+          </div>
+        </div>
+
+        <div class="stat-badge special-container">
+          <span class="hud-label">FURIA ESPECTRAL [C]</span>
+          <div class="special-bar-wrapper">
+            <div id="fury-bar-fill" class="bar-fill fury-fill" style="width: 0%;"></div>
+            <span id="fury-text">CARGANDO...</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Centro: Progreso al Jefe de 5000 pts -->
+      <div class="hud-group boss-tracker">
+        <div class="boss-goal-header">
+          <span class="flame-icon">🔥</span>
+          <span id="boss-goal-title">INVOCACIÓN DEL JEFE (5000 PTS)</span>
+          <span class="flame-icon">🔥</span>
+        </div>
+        <div class="boss-progress-bar-wrapper">
+          <div id="boss-progress-fill" class="bar-fill boss-progress-fill" style="width: 0%;"></div>
+          <span id="boss-progress-text">0 / 5000 PTS</span>
+        </div>
+      </div>
+
+      <!-- Derecha: Puntos, Distancia y Combo -->
+      <div class="hud-group score-stats">
+        <div class="level-box">
+          <span class="hud-label">NIVEL</span>
+          <span id="level-counter" class="digital-number small" style="color: #c084fc;">1</span>
+        </div>
+        <div class="distance-box">
+          <span class="hud-label">DISTANCIA</span>
+          <span id="distance-counter" class="digital-number small" style="color: #f59e0b;">0 m</span>
+        </div>
+        <div class="score-box">
+          <span class="hud-label">PUNTOS</span>
+          <span id="score-counter" class="digital-number">00000</span>
+        </div>
+        <div class="combo-box">
+          <span class="hud-label">RÉCORD</span>
+          <span id="highscore-counter" class="digital-number small">00000</span>
+        </div>
+        <div id="combo-display" class="combo-badge hidden">
+          <span id="combo-number">x2</span> COMBO!
+        </div>
+      </div>
+    </header>
+
+    <!-- Barra de Vida del Jefe (Aparece a 5000 pts) -->
+    <div id="boss-hud" class="boss-hud hidden">
+      <div class="boss-title-row">
+        <span class="boss-skull">👁️</span>
+        <span class="boss-name">EL DESTRUCTOR DEL DESIERTO &mdash; JEFE DE 3 OJOS</span>
+        <span class="boss-skull">👁️</span>
+      </div>
+      <div class="boss-health-frame">
+        <div id="boss-health-fill" class="boss-hp-fill" style="width: 100%;"></div>
+        <div id="boss-health-ghost" class="boss-hp-ghost" style="width: 100%;"></div>
+        <span id="boss-health-text">3500 / 3500 HP</span>
+      </div>
+    </div>
+
+    <!-- Área del Canvas de Juego -->
+    <div id="canvas-container">
+      <canvas id="gameCanvas" width="960" height="540"></canvas>
+      
+      <!-- Efecto CRT Scanlines y Viñeta -->
+      <div id="crt-overlay" class="crt-overlay active"></div>
+      
+      <!-- Cartel de Alerta de Jefe -->
+      <div id="boss-warning-banner" class="boss-warning-banner hidden">
+        <div class="warning-tape">¡¡¡ ALERTA !!!</div>
+        <h2 class="warning-title">¡¡¡EL MONSTRUO DE 3 OJOS HA SURGIDO DEL DESIERTO!!!</h2>
+        <p class="warning-sub">¡PREPÁRATE PARA LA BATALLA DEFINITIVA!</p>
+      </div>
+
+      <!-- Cartel de Desbloqueo de Nivel 2 -->
+      <div id="level2-banner" class="level2-banner hidden">
+        <div class="level2-tape">✨ ¡¡¡ NIVEL 2 DESBLOQUEADO !!! ✨</div>
+        <h2 class="level2-title">¡LA NOCHE DE LA BRUJA Y LAS HORDAS DEL DESIERTO!</h2>
+        <p class="level2-sub">¡AVANZA HASTA EL FINAL DEL CAMINO Y CRUZA EL PORTAL DE SALIDA!</p>
+      </div>
+
+      <!-- Mensajes flotantes y notificaciones in-game -->
+      <div id="floating-banner" class="floating-banner hidden"></div>
+    </div>
+
+    <!-- Barra Inferior de Controles y Atajos -->
+    <footer id="bottom-bar">
+      <div class="controls-legend">
+        <div class="legend-item"><kbd>▲</kbd> Saltar (Doble salto)</div>
+        <div class="legend-item"><kbd>◄</kbd> <kbd>►</kbd> Avanzar / Retroceder</div>
+        <div class="legend-item"><kbd>▼</kbd> Bajar / Agacharse</div>
+        <div class="legend-item"><kbd>ESPACIO</kbd> / <kbd>CLICK</kbd> Disparar Pistolas</div>
+        <div class="legend-item special"><kbd>C</kbd> Furia Espectral</div>
+      </div>
+
+      <div class="hud-buttons">
+        <button id="btn-autofire" class="hud-btn" title="Activar/desactivar disparo continuo">
+          🔫 Auto-Disparo: <span id="autofire-state">ON</span>
+        </button>
+        <button id="btn-sound" class="hud-btn" title="Silenciar / Activar Sonido">
+          🔊 Sonido: <span id="sound-state">ON</span>
+        </button>
+        <button id="btn-crt" class="hud-btn" title="Filtro Retro CRT">
+          📺 CRT: <span id="crt-state">ON</span>
+        </button>
+        <button id="btn-pause" class="hud-btn" title="Pausar Juego">
+          ⏸️ Pausa
+        </button>
+      </div>
+    </footer>
+
+    <!-- Controles Táctiles en Pantalla (Mobile / Touch) -->
+    <div id="touch-controls" class="touch-controls">
+      <div class="dpad-cluster">
+        <button class="touch-btn touch-up" id="touch-up">▲</button>
+        <div class="dpad-mid">
+          <button class="touch-btn touch-left" id="touch-left">◄</button>
+          <button class="touch-btn touch-down" id="touch-down">▼</button>
+          <button class="touch-btn touch-right" id="touch-right">►</button>
+        </div>
+      </div>
+      <div class="action-cluster">
+        <button class="touch-btn touch-special" id="touch-special">⚡ FURIA</button>
+        <button class="touch-btn touch-jump" id="touch-jump">JUMP</button>
+        <button class="touch-btn touch-shoot" id="touch-shoot">FIRE 💥</button>
+      </div>
+    </div>
+
+    <!-- ===================================================================
+         PANTALLA 1: THE NIGHT HUNTER (PANTALLA PRINCIPAL / TÍTULO)
+         =================================================================== -->
+    <div id="screen-title" class="screen-modal active">
+      <div class="screen-stage-wrapper">
+        <!-- Imagen Base 1: The Night Hunter -->
+        <img class="screen-bg-img" src="./assets/media_1791976681572.jpg" alt="The Night Hunter">
+        
+        <!-- Canvas de Efectos Visuales: Fuego Verde en movimiento y Ojos Parpadeantes Brillantes -->
+        <canvas id="title-fx-canvas" class="screen-fx-canvas" width="1024" height="628"></canvas>
+
+        <!-- Botón Interactivo PLAY GAME posicionado sobre el botón de la imagen -->
+        <button id="btn-title-play" class="btn-play-game-retro" aria-label="Play Game">
+          <span class="btn-text">PLAY GAME</span>
+          <span class="btn-glow-pulse"></span>
+        </button>
+
+        <!-- Botón auxiliar para ver controles/guía -->
+        <button id="btn-title-controls" class="btn-retro-corner" title="Ver Controles y Misión">
+          🎮 CONTROLES
+        </button>
+      </div>
+    </div>
+
+    <!-- Modal Auxiliar de Controles y Misión (Accesible desde Pantalla 1) -->
+    <div id="title-controls-modal" class="overlay-modal hidden">
+      <div class="modal-card">
+        <div class="modal-glow-border"></div>
+        <div class="modal-header">
+          <div class="skull-emblem">💀🔥</div>
+          <h2 class="main-title">THE NIGHT HUNTER</h2>
+          <h3 class="sub-title">MANUAL DEL PISTOLERO ESPECTRAL</h3>
+        </div>
+
+        <div class="modal-body">
+          <div class="story-box">
+            <p>Bajo la luna carmesí del desierto maldito, el Pistolero Espectral empuña sus revólveres gemelos de fuego esmeralda.</p>
+            <p>Hordas de <strong>monstruos terrestres y voladores</strong> lanzan proyectiles mágicos y espinas. ¡Destrúyelos a todos!</p>
+            <div class="mission-highlight">
+              🎯 <strong>MISIÓN PRINCIPAL:</strong> Alcanza <strong>5,000 PUNTOS</strong> para invocar y derrotar al colosal <strong>MONSTRUO DE 3 OJOS</strong>.
+            </div>
+          </div>
+
+          <div class="instructions-grid">
+            <div class="inst-col">
+              <h4>🎮 CONTROLES:</h4>
+              <ul>
+                <li><kbd>Flecha Arriba</kbd> o <kbd>W</kbd>: Saltar (¡Doble Salto disponible!)</li>
+                <li><kbd>Flechas Izq / Der</kbd> o <kbd>A</kbd> / <kbd>D</kbd>: Avanzar y Retroceder</li>
+                <li><kbd>Flecha Abajo</kbd> o <kbd>S</kbd>: Agacharse / Bajar rápido</li>
+                <li><kbd>Espacio</kbd> o <kbd>Click Izq</kbd>: Disparar revólveres</li>
+                <li><kbd>C</kbd> o <kbd>Click Der</kbd>: Super Furia Espectral</li>
+              </ul>
+            </div>
+            <div class="inst-col">
+              <h4>👾 ENEMIGOS Y ATAQUES:</h4>
+              <ul>
+                <li>🌵 <strong>Cactus Maldito:</strong> Ráfagas de espinas en arco.</li>
+                <li>🦂 <strong>Escorpión del Desierto:</strong> Orbes de veneno corrosivo.</li>
+                <li>🐺 <strong>Lobo Espectral:</strong> Embestidas fantasmales veloces.</li>
+                <li>🦇 <strong>Monstruos Voladores:</strong> Bolas de plasma violeta teledirigidas.</li>
+                <li>👁️ <strong>Jefe de 3 Ojos (5000 pts):</strong> Rayos láser triples y terremoto de arena.</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button id="btn-close-controls" class="btn-play-pulse">
+            ✓ ENTENDIDO (CERRAR)
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===================================================================
+         PANTALLA 2: SEGUNDA VENTANA (EL PISTOLERO ESPECTRAL Y MISIÓN)
+         Aparece al presionar 'PLAY GAME' en la primera imagen
+         =================================================================== -->
+    <div id="screen-second" class="screen-modal hidden">
+      <div class="screen-stage-wrapper">
+        <!-- Imagen Base 2: Pistolero Esqueleto con Linterna, Fuego Verde y HEART x 3 -->
+        <img class="screen-bg-img" src="./assets/media_1791978708343.png" alt="Pistolero Espectral Heart x 3">
+        
+        <!-- Canvas de Efectos Visuales: Latido de corazón, Luz de linterna cálida, Fuego verde en cowboy -->
+        <canvas id="second-fx-canvas" class="screen-fx-canvas" width="1024" height="628"></canvas>
+
+        <!-- Tarjeta de Despliegue de Misión y Controles -->
+        <div class="second-briefing-card">
+          <div class="briefing-header">
+            <span class="briefing-badge">❤️ 3 VIDAS</span>
+            <span class="briefing-title">THE NIGHT HUNTER &bull; LISTO PARA LA CACERÍA</span>
+            <span class="briefing-badge green">🔥 FUEGO ESPECTRAL</span>
+          </div>
+          
+          <p class="briefing-desc">
+            Empuña tus revólveres de fuego verde y adéntrate en el desierto maldito. Elimina hordas de criaturas y alcanza <strong>5,000 PUNTOS</strong> para invocar al temible Monstruo de 3 Ojos.
+          </p>
+
+          <div class="briefing-controls-pill">
+            <span><kbd>WASD</kbd> / <kbd>▲◄▼►</kbd> Moverse y Saltar</span>
+            <span><kbd>ESPACIO</kbd> / <kbd>CLICK</kbd> Disparar</span>
+            <span><kbd>C</kbd> Furia Espectral</span>
+          </div>
+
+          <div class="briefing-actions">
+            <button id="btn-back-to-title" class="btn-briefing-secondary">
+              ◄ VOLVER AL MENÚ
+            </button>
+            <button id="btn-start-action" class="btn-briefing-primary">
+              💀 ¡ENTRAR AL DESIERTO (PLAY)! 💀
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Pantalla de Game Over -->
+    <div id="game-over-screen" class="overlay-modal hidden">
+      <div class="modal-card defeat">
+        <div class="skull-defeat">💀⚰️</div>
+        <h2 class="defeat-title">EL DESIERTO RECLAMÓ TU ALMA</h2>
+        <p class="defeat-text">Tus huesos descansan bajo las arenas malditas...</p>
+        
+        <div class="stats-summary">
+          <div class="stat-item">
+            <span>PUNTUACIÓN FINAL</span>
+            <strong id="final-score">0</strong>
+          </div>
+          <div class="stat-item">
+            <span>MONSTRUOS VENCIDOS</span>
+            <strong id="final-kills">0</strong>
+          </div>
+          <div class="stat-item">
+            <span>MAYOR COMBO</span>
+            <strong id="final-max-combo">0</strong>
+          </div>
+        </div>
+
+        <div class="modal-actions-row">
+          <button id="btn-restart" class="btn-play-pulse">
+            🔄 REINTENTAR LA VENGANZA
+          </button>
+          <button id="btn-back-to-menu-gameover" class="btn-secondary">
+            🏠 MENÚ PRINCIPAL
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Pantalla de Victoria Definitiva (Cruzando el Portal) -->
+    <div id="victory-screen" class="overlay-modal hidden">
+      <div class="modal-card victory">
+        <div class="trophy-victory">🏆🌀✨</div>
+        <h2 class="victory-title">¡¡¡VICTORIA DEFINITIVA!!!</h2>
+        <h3 class="victory-sub">¡HAS CRUZADO EL PORTAL Y ESCAPADO DEL DESIERTO!</h3>
+        <p class="victory-text">Derrotaste al colosal Monstruo de 3 Ojos en el Nivel 1 y sobreviviste a las Brujas Voladoras hasta alcanzar el final del camino y cruzar el portal de escape.</p>
+        
+        <div class="stats-summary victory-stats">
+          <div class="stat-item">
+            <span>PUNTUACIÓN TOTAL</span>
+            <strong id="victory-score">0</strong>
+          </div>
+          <div class="stat-item">
+            <span>NIVELES SUPERADOS</span>
+            <strong style="color: #4ade80;">NIVEL 1 & NIVEL 2</strong>
+          </div>
+          <div class="stat-item">
+            <span>PORTAL CRUZADO</span>
+            <strong style="color: #38bdf8;">ÉXITO TOTAL 🌀</strong>
+          </div>
+        </div>
+
+        <div class="modal-actions-row">
+          <button id="btn-victory-restart" class="btn-play-pulse">
+            🔥 JUGAR DE NUEVO (NUEVA AVENTURA)
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal de Pausa -->
+    <div id="pause-modal" class="overlay-modal hidden">
+      <div class="modal-card pause-card">
+        <h2>⏸️ JUEGO EN PAUSA</h2>
+        <p>Tómate un respiro antes de continuar la cacería.</p>
+        <div class="pause-actions">
+          <button id="btn-resume" class="btn-play-pulse">▶️ CONTINUAR</button>
+          <button id="btn-quit" class="btn-secondary">🔄 REINICIAR</button>
+          <button id="btn-back-to-menu-pause" class="btn-secondary">🏠 MENÚ PRINCIPAL</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <script type="module" src="./src/main.js"></script>
+</body>
+</html>

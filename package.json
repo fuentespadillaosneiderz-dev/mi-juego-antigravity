@@ -1,0 +1,14 @@
+{
+  "name": "el-vengador-del-desierto",
+  "version": "1.0.0",
+  "description": "Juego retro arcade del pistolero esqueleto en el desierto contra el monstruo de 3 ojos",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "devDependencies": {
+    "vite": "^8.3.4"
+  }
+}
