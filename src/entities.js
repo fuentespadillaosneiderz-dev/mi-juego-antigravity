@@ -270,7 +270,7 @@ export class Player {
     this.height = 70;
     this.vx = 0;
     this.vy = 0;
-    this.speed = 310;
+    this.speed = 240; // Velocidad del personaje reducida según solicitud para un control más táctico
     this.jumpForce = -470;
     this.isGrounded = false;
     this.jumpCount = 0;
@@ -289,11 +289,53 @@ export class Player {
     this.rapidFireTimer = 0;
     this.gunToggle = false; // Alternating dual revolvers
     this.aimAngle = 0;
+    this.localAimAngle = 0;
+    this.hasAimTarget = false;
+    this.aimTargetX = 0;
+    this.aimTargetY = 0;
     this.customAim = false;
 
     // Animation state
     this.animTime = 0;
     this.coatWave = 0;
+  }
+
+  updateAim(targetX, targetY) {
+    if (targetX === null || targetY === null || isNaN(targetX) || isNaN(targetY)) {
+      this.hasAimTarget = false;
+      this.localAimAngle = 0;
+      return;
+    }
+
+    this.hasAimTarget = true;
+    this.aimTargetX = targetX;
+    this.aimTargetY = targetY;
+
+    const shoulderX = this.x + this.facing * 6;
+    const shoulderY = this.y - (this.isCrouching ? 6 : 14);
+
+    const dx = targetX - shoulderX;
+    const dy = targetY - shoulderY;
+
+    // Orient facing direction based on mouse position
+    if (dx > 12) {
+      this.facing = 1;
+    } else if (dx < -12) {
+      this.facing = -1;
+    }
+
+    this.aimAngle = Math.atan2(dy, dx);
+
+    // Calculate local arm rotation angle relative to flipped orientation
+    if (this.facing === 1) {
+      this.localAimAngle = Math.atan2(dy, dx);
+    } else {
+      this.localAimAngle = Math.atan2(dy, -dx);
+    }
+
+    // Natural arm angle clamp (-78 deg to +78 deg)
+    const maxClamp = Math.PI * 0.44;
+    this.localAimAngle = Math.max(-maxClamp, Math.min(maxClamp, this.localAimAngle));
   }
 
   update(dt, keys, groundY, soundMgr, particles, projectiles, cameraX = 0) {
@@ -401,23 +443,34 @@ export class Player {
 
     soundMgr.playGunshot();
 
-    // Muzzle position
-    const gunY = this.y - (this.isCrouching ? 8 : 14);
-    const gunX = this.x + this.facing * 24;
+    const shoulderY = this.y - (this.isCrouching ? 6 : 14);
+    const shoulderX = this.x + this.facing * 6;
 
-    let vx = this.facing * 850;
+    let vx = this.facing * 880;
     let vy = 0;
 
-    if (targetX !== null && targetY !== null) {
-      const dx = targetX - gunX;
-      const dy = targetY - gunY;
-      const angle = Math.atan2(dy, dx);
-      // Ensure player faces aiming direction
-      if (dx > 20) this.facing = 1;
-      else if (dx < -20) this.facing = -1;
+    const tx = targetX !== null ? targetX : (this.hasAimTarget ? this.aimTargetX : null);
+    const ty = targetY !== null ? targetY : (this.hasAimTarget ? this.aimTargetY : null);
 
-      vx = Math.cos(angle) * 850;
-      vy = Math.sin(angle) * 850;
+    let gunX = this.x + this.facing * 24;
+    let gunY = shoulderY;
+
+    if (tx !== null && ty !== null) {
+      const dx = tx - shoulderX;
+      const dy = ty - shoulderY;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      if (dist > 1) {
+        if (dx > 12) this.facing = 1;
+        else if (dx < -12) this.facing = -1;
+
+        const angle = Math.atan2(dy, dx);
+        vx = Math.cos(angle) * 880;
+        vy = Math.sin(angle) * 880;
+
+        // Position muzzle at the tip of the aiming arm (approx 24px along angle)
+        gunX = shoulderX + Math.cos(angle) * 24;
+        gunY = shoulderY + Math.sin(angle) * 24;
+      }
     }
 
     // Primary bullet (increased speed and range so it travels cleanly across the screen)
@@ -427,8 +480,8 @@ export class Player {
     if (isRapid) {
       const spread1 = Math.atan2(vy, vx) + 0.15;
       const spread2 = Math.atan2(vy, vx) - 0.15;
-      projectiles.push(new Projectile(gunX, gunY, Math.cos(spread1) * 850, Math.sin(spread1) * 850, 4, 36, '#a7f3d0', true, 'bullet'));
-      projectiles.push(new Projectile(gunX, gunY, Math.cos(spread2) * 850, Math.sin(spread2) * 850, 4, 36, '#a7f3d0', true, 'bullet'));
+      projectiles.push(new Projectile(gunX, gunY, Math.cos(spread1) * 880, Math.sin(spread1) * 880, 4, 36, '#a7f3d0', true, 'bullet'));
+      projectiles.push(new Projectile(gunX, gunY, Math.cos(spread2) * 880, Math.sin(spread2) * 880, 4, 36, '#a7f3d0', true, 'bullet'));
     }
 
     // Green muzzle flash
@@ -507,16 +560,17 @@ export class Player {
 // ENEMIES
 // -------------------------------------------------------------
 export class CactusEnemy {
-  constructor(x, groundY) {
+  constructor(x, groundY, aggression = 1.0) {
     this.x = x;
     this.groundY = groundY;
     this.y = groundY - 26;
     this.width = 40;
     this.height = 54;
-    this.hp = 45; // Reduced from 85 for easier gameplay
-    this.maxHp = 45;
+    this.hp = Math.round(45 * (1 + (aggression - 1) * 0.2));
+    this.maxHp = this.hp;
     this.alive = true;
-    this.shootTimer = 1.8 + Math.random() * 2.0;
+    this.aggression = aggression;
+    this.shootTimer = (1.6 + Math.random() * 1.6) / aggression;
     this.animTime = Math.random() * 10;
     this.hitFlash = 0;
     this.points = 150;
@@ -529,18 +583,18 @@ export class CactusEnemy {
 
     this.shootTimer -= dt;
     if (this.shootTimer <= 0) {
-      this.shootTimer = 3.2 + Math.random() * 1.5; // Longer cooldown between attacks
+      this.shootTimer = (2.6 + Math.random() * 1.2) / this.aggression;
       // Shoot 3 needles in arc towards player
       const dir = player.x < this.x ? -1 : 1;
       const baseAngle = dir === -1 ? Math.PI : 0;
       const angles = [baseAngle - 0.22, baseAngle, baseAngle + 0.22];
+      const speed = 210 * (1 + (this.aggression - 1) * 0.25);
 
       angles.forEach(a => {
-        const speed = 210; // Slower needles
         projectiles.push(new Projectile(
           this.x, this.y - 6,
           Math.cos(a) * speed, Math.sin(a) * speed,
-          4, 10, '#4ade80', false, 'thorn' // Damage reduced to 10
+          4, 10, '#4ade80', false, 'thorn'
         ));
       });
       soundMgr.playGunshot();
@@ -559,17 +613,18 @@ export class CactusEnemy {
 }
 
 export class ScorpionEnemy {
-  constructor(x, groundY) {
+  constructor(x, groundY, aggression = 1.0) {
     this.x = x;
     this.groundY = groundY;
     this.y = groundY - 18;
     this.width = 54;
     this.height = 36;
-    this.hp = 55; // Reduced from 110
-    this.maxHp = 55;
+    this.hp = Math.round(55 * (1 + (aggression - 1) * 0.2));
+    this.maxHp = this.hp;
     this.alive = true;
-    this.speed = 75; // Slower walk speed
-    this.shootTimer = 2.4 + Math.random() * 1.5;
+    this.aggression = aggression;
+    this.speed = 75 * (1 + (aggression - 1) * 0.4); // Más rápido con agresividad
+    this.shootTimer = (2.0 + Math.random() * 1.4) / aggression;
     this.hitFlash = 0;
     this.points = 200;
     this.type = 'scorpion';
@@ -579,24 +634,24 @@ export class ScorpionEnemy {
   update(dt, player, projectiles, soundMgr) {
     if (this.hitFlash > 0) this.hitFlash -= dt;
 
-    // Walk towards player slowly
+    // Walk towards player
     this.dir = player.x < this.x ? -1 : 1;
     this.x += this.dir * this.speed * dt;
 
     this.shootTimer -= dt;
     if (this.shootTimer <= 0) {
-      this.shootTimer = 3.4 + Math.random() * 1.4; // Longer cooldown
+      this.shootTimer = (2.8 + Math.random() * 1.2) / this.aggression;
       // Stinger poison acid globe
       const dx = player.x - this.x;
       const dy = player.y - this.y;
       const dist = Math.sqrt(dx * dx + dy * dy);
-      const vx = (dx / Math.max(1, dist)) * 210;
+      const vx = (dx / Math.max(1, dist)) * (210 * (1 + (this.aggression - 1) * 0.2));
       const vy = -150; // Parabolic toss
 
       projectiles.push(new Projectile(
         this.x + this.dir * 18, this.y - 18,
         vx, vy,
-        6, 12, '#f97316', false, 'acid' // Damage reduced to 12
+        6, 12, '#f97316', false, 'acid'
       ));
     }
   }
@@ -613,16 +668,17 @@ export class ScorpionEnemy {
 }
 
 export class GhostWolfEnemy {
-  constructor(x, groundY) {
+  constructor(x, groundY, aggression = 1.0) {
     this.x = x;
     this.groundY = groundY;
     this.y = groundY - 22;
     this.width = 52;
     this.height = 40;
-    this.hp = 45; // Reduced from 95
-    this.maxHp = 45;
+    this.hp = Math.round(45 * (1 + (aggression - 1) * 0.2));
+    this.maxHp = this.hp;
     this.alive = true;
-    this.speed = 170; // Moderated speed (was 220)
+    this.aggression = aggression;
+    this.speed = 170 * (1 + (aggression - 1) * 0.45); // Embestida más veloz con agresividad
     this.hitFlash = 0;
     this.points = 220;
     this.type = 'wolf';
@@ -660,17 +716,18 @@ export class GhostWolfEnemy {
 
 // FLYING MONSTERS (Bat / Gargoyle / Winged Demon Eyeball)
 export class FlyingEnemy {
-  constructor(x, y) {
+  constructor(x, y, aggression = 1.0) {
     this.x = x;
     this.y = y;
     this.startY = y;
     this.width = 46;
     this.height = 42;
-    this.hp = 38; // Reduced from 80 - dies quickly to gunfire!
-    this.maxHp = 38;
+    this.hp = Math.round(38 * (1 + (aggression - 1) * 0.2));
+    this.maxHp = this.hp;
     this.alive = true;
-    this.speed = 95; // Slower movement
-    this.shootTimer = 2.2 + Math.random() * 1.5;
+    this.aggression = aggression;
+    this.speed = 95 * (1 + (aggression - 1) * 0.35);
+    this.shootTimer = (1.8 + Math.random() * 1.4) / aggression;
     this.hitFlash = 0;
     this.points = 250;
     this.type = 'flying';
@@ -688,17 +745,17 @@ export class FlyingEnemy {
 
     this.shootTimer -= dt;
     if (this.shootTimer <= 0) {
-      this.shootTimer = 3.6 + Math.random() * 1.4; // Longer cooldown
+      this.shootTimer = (2.8 + Math.random() * 1.2) / this.aggression;
       // Shoot purple homing orbs towards player
       const dx = player.x - this.x;
       const dy = player.y - this.y;
       const dist = Math.sqrt(dx * dx + dy * dy);
-      const speed = 180; // Slower projectile (was 230)
+      const speed = 180 * (1 + (this.aggression - 1) * 0.2);
 
       projectiles.push(new Projectile(
         this.x, this.y + 10,
         (dx / Math.max(1, dist)) * speed, (dy / Math.max(1, dist)) * speed,
-        7, 12, '#c084fc', false, 'purple' // Damage reduced to 12
+        7, 12, '#c084fc', false, 'purple'
       ));
     }
   }
@@ -715,6 +772,59 @@ export class FlyingEnemy {
 }
 
 // -------------------------------------------------------------
+// ZOMBIE ENEMY (RETRO PIXEL ART ZOMBIE INSPIRADO EN LA IMAGEN)
+// -------------------------------------------------------------
+export class ZombieEnemy {
+  constructor(x, groundY, aggression = 1.0) {
+    this.x = x;
+    this.groundY = groundY;
+    this.y = groundY - 30;
+    this.width = 46;
+    this.height = 60;
+    this.hp = Math.round(65 * (1 + (aggression - 1) * 0.25));
+    this.maxHp = this.hp;
+    this.alive = true;
+    this.aggression = aggression;
+    this.speed = 80 * (1 + (aggression - 1) * 0.5); // Arrastre más voraz con agresividad
+    this.hitFlash = 0;
+    this.points = 180;
+    this.type = 'zombie';
+    this.dir = -1;
+    this.animTime = Math.random() * 10;
+  }
+
+  update(dt, player, projectiles, soundMgr, particles) {
+    this.animTime += dt * 3.5;
+    if (this.hitFlash > 0) this.hitFlash -= dt;
+
+    // Caminar arrastrándose hacia el pistolero
+    this.dir = player.x < this.x ? -1 : 1;
+    this.x += this.dir * this.speed * dt;
+
+    // Partículas de polvo podrido / arena pútrida al caminar
+    if (particles && Math.random() < 0.15) {
+      particles.push(new Particle(
+        this.x + (Math.random() - 0.5) * 16,
+        this.groundY - 4,
+        (Math.random() - 0.5) * 20,
+        -10 - Math.random() * 15,
+        '#4d7c0f', 3, 0.35, 'smoke'
+      ));
+    }
+  }
+
+  takeDamage(amount) {
+    this.hp -= amount;
+    this.hitFlash = 0.12;
+    if (this.hp <= 0) this.alive = false;
+  }
+
+  getHitbox() {
+    return { x: this.x - 20, y: this.y - 30, width: 40, height: 60 };
+  }
+}
+
+// -------------------------------------------------------------
 // THE DESERT SCOURGE - 3 EYE BOSS (EL MONSTRUO DE 3 OJOS)
 // -------------------------------------------------------------
 export class Boss3Eyes {
@@ -724,8 +834,8 @@ export class Boss3Eyes {
     this.groundY = groundY;
     this.width = 240;
     this.height = 200;
-    this.maxHp = 2200; // Reduced from 3500 for a much more balanced epic fight
-    this.hp = 2200;
+    this.maxHp = 8000; // Monstruo del Nivel 2 reforzado con 8,000 HP según solicitud
+    this.hp = 8000;
     this.alive = true;
     this.active = false;
     this.points = 10000;
@@ -733,10 +843,11 @@ export class Boss3Eyes {
     this.hitFlash = 0;
 
     // Boss state machine
-    this.state = 'intro'; // 'intro', 'idle', 'eye_lasers', 'arm_slam', 'summon_minions', 'berserk'
+    this.state = 'intro'; // 'intro', 'idle', 'eye_lasers', 'energy_orbs', 'arm_slam', 'summon_minions', 'berserk'
     this.stateTimer = 0;
     this.introRise = -200; // Drops/rises into arena
     this.breathTimer = 0;
+    this.energyOrbTimer = 0;
 
     // Laser attack tracking
     this.laserCharging = false;
@@ -764,9 +875,16 @@ export class Boss3Eyes {
       return;
     }
 
-    // Arm idle sway
-    for (let i = 0; i < 6; i++) {
-      this.armAngles[i] = Math.sin(this.breathTimer + i * 1.2) * 0.35;
+    // Arm idle sway or gesture based on attack
+    if (this.state === 'energy_orbs') {
+      // Arms raised high gathering dark energy
+      for (let i = 0; i < 6; i++) {
+        this.armAngles[i] = -0.7 + Math.sin(this.breathTimer * 4 + i) * 0.25;
+      }
+    } else {
+      for (let i = 0; i < 6; i++) {
+        this.armAngles[i] = Math.sin(this.breathTimer + i * 1.2) * 0.35;
+      }
     }
 
     this.stateTimer -= dt;
@@ -775,45 +893,95 @@ export class Boss3Eyes {
     if (this.state === 'idle') {
       if (this.stateTimer <= 0) {
         const hpPercent = this.hp / this.maxHp;
-        // Choose next attack
         const rand = Math.random();
-        if (hpPercent < 0.35 && rand < 0.45) {
-          // Berserk Rapid Laser Barrage
+
+        if (hpPercent < 0.35 && rand < 0.40) {
+          // Berserk Rapid Laser Barrage + Orbs
           this.state = 'berserk';
-          this.stateTimer = 3.5;
+          this.stateTimer = 3.6;
           this.laserCharging = true;
           soundMgr.playLaserBeam();
         } else if (rand < 0.35) {
+          // Rayos Láser de los 3 Ojos
           this.state = 'eye_lasers';
           this.stateTimer = 3.5;
           this.laserCharging = true;
           this.targetBeamX = player.x;
           soundMgr.playLaserBeam();
         } else if (rand < 0.70) {
+          // Ráfaga Concentrada de Bolas de Energía
+          this.state = 'energy_orbs';
+          this.stateTimer = 3.2;
+          this.energyOrbTimer = 0;
+        } else if (rand < 0.88) {
           this.state = 'arm_slam';
-          this.stateTimer = 2.5;
+          this.stateTimer = 2.4;
         } else {
           this.state = 'summon_minions';
           this.stateTimer = 2.0;
           if (spawnMinionCb) spawnMinionCb();
         }
       }
+    } else if (this.state === 'energy_orbs') {
+      // RÁFAGA DE BOLAS DE ENERGÍA: Dispara esferas luminosas dirigidas al jugador
+      this.energyOrbTimer += dt;
+      if (this.stateTimer > 0.4 && this.energyOrbTimer >= 0.28) {
+        this.energyOrbTimer = 0;
+        if (soundMgr && soundMgr.playLaserBeam) soundMgr.playLaserBeam();
+
+        // 3 Bolas de energía en cono dirigidas hacia el jugador
+        const baseAngle = Math.atan2(player.y - this.y, player.x - this.x);
+        [-0.22, 0, 0.22].forEach((spread, idx) => {
+          const ang = baseAngle + spread;
+          const orbSpeed = 330 + idx * 15;
+          projectiles.push(new Projectile(
+            this.x + (idx - 1) * 35,
+            this.y + 10,
+            Math.cos(ang) * orbSpeed,
+            Math.sin(ang) * orbSpeed,
+            9,
+            16,
+            '#f59e0b',
+            false,
+            'boss_orb'
+          ));
+        });
+
+        // Chispas de energía concentrada
+        for (let k = 0; k < 6; k++) {
+          particles.push(new Particle(
+            this.x + (Math.random() - 0.5) * 60,
+            this.y + 10,
+            (Math.random() - 0.5) * 140,
+            (Math.random() - 0.5) * 140,
+            '#fbbf24',
+            4,
+            0.3,
+            'spark'
+          ));
+        }
+      }
+
+      if (this.stateTimer <= 0) {
+        this.state = 'idle';
+        this.stateTimer = 1.3;
+      }
     } else if (this.state === 'eye_lasers') {
       // 3 Eyes track towards player then blast beams
-      this.targetBeamX += (player.x - this.targetBeamX) * 1.6 * dt;
+      this.targetBeamX += (player.x - this.targetBeamX) * 1.8 * dt;
       
       if (this.stateTimer < 2.5 && this.stateTimer > 0.6) {
         this.laserCharging = false;
         this.laserFiring = true;
 
         // Shoot damaging projectiles along the triple beams
-        if (Math.random() < 0.35) {
+        if (Math.random() < 0.40) {
           const eyeXOffsets = [-50, 0, 50];
           eyeXOffsets.forEach(ox => {
             projectiles.push(new Projectile(
               this.x + ox, this.y - 10,
-              (this.targetBeamX + ox - (this.x + ox)) * 0.8, 340,
-              8, 15, '#ef4444', false, 'boss_orb' // Damage reduced to 15
+              (this.targetBeamX + ox - (this.x + ox)) * 0.8, 360,
+              8, 16, '#ef4444', false, 'boss_orb'
             ));
           });
         }
@@ -821,7 +989,7 @@ export class Boss3Eyes {
         this.laserFiring = false;
         if (this.stateTimer <= 0) {
           this.state = 'idle';
-          this.stateTimer = 1.5;
+          this.stateTimer = 1.4;
         }
       }
     } else if (this.state === 'arm_slam') {
@@ -861,15 +1029,15 @@ export class Boss3Eyes {
         this.stateTimer = 1.2;
       }
     } else if (this.state === 'berserk') {
-      // BERSERK: Continuous triple eye laser sweep
+      // BERSERK: Continuous triple eye laser sweep + energy orbs
       this.targetBeamX = this.x + Math.sin(this.breathTimer * 2.5) * 320;
       this.laserFiring = true;
 
-      if (Math.random() < 0.45) {
+      if (Math.random() < 0.5) {
         const ox = (Math.random() - 0.5) * 80;
         projectiles.push(new Projectile(
           this.x + ox, this.y,
-          (this.targetBeamX - this.x) * 0.8, 360,
+          (this.targetBeamX - this.x) * 0.85, 380,
           9, 18, '#ef4444', false, 'boss_orb'
         ));
       }
@@ -906,17 +1074,18 @@ export class Boss3Eyes {
 // LEVEL 2 NUEVO MONSTRUO: LA BRUJA VOLADORA EN ESCOBA
 // -------------------------------------------------------------
 export class WitchEnemy {
-  constructor(x, y) {
+  constructor(x, y, aggression = 1.0) {
     this.x = x;
     this.y = y;
     this.startY = y;
     this.width = 60;
     this.height = 54;
-    this.hp = 70;
-    this.maxHp = 70;
+    this.hp = Math.round(70 * (1 + (aggression - 1) * 0.25));
+    this.maxHp = this.hp;
     this.alive = true;
-    this.speed = 110;
-    this.shootTimer = 1.6 + Math.random() * 1.6;
+    this.aggression = aggression;
+    this.speed = 110 * (1 + (aggression - 1) * 0.35);
+    this.shootTimer = (1.6 + Math.random() * 1.4) / aggression;
     this.hitFlash = 0;
     this.points = 450;
     this.type = 'witch';
@@ -948,11 +1117,11 @@ export class WitchEnemy {
     // Disparo de bolas luminosas mágicas
     this.shootTimer -= dt;
     if (this.shootTimer <= 0) {
-      this.shootTimer = 2.4 + Math.random() * 1.2;
+      this.shootTimer = (2.2 + Math.random() * 1.0) / this.aggression;
       const dx = player.x - this.x;
       const dy = player.y - this.y;
       const dist = Math.sqrt(dx * dx + dy * dy);
-      const speed = 230;
+      const speed = 230 * (1 + (this.aggression - 1) * 0.2);
 
       projectiles.push(new Projectile(
         this.x + this.dir * 18, this.y + 6,

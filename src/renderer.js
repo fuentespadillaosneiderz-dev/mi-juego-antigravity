@@ -98,6 +98,7 @@ export class GameRenderer {
       else if (e.type === 'wolf') this.drawWolf(e, game.time);
       else if (e.type === 'flying') this.drawFlyingEnemy(e, game.time);
       else if (e.type === 'witch') this.drawWitch(e, game.time);
+      else if (e.type === 'zombie') this.drawZombie(e, game.time);
     });
 
     // 6. Draw Player (Undead Skeleton Cowboy)
@@ -123,7 +124,46 @@ export class GameRenderer {
 
     ctx.restore(); // Restore world translation
 
+    // 11. Draw Mouse Aim Reticle Crosshair (Screen Space)
+    if (game.mouse && game.mouse.inside && game.state === 'playing') {
+      this.drawCrosshair(game.mouse.x, game.mouse.y);
+    }
+
     ctx.restore(); // Restore screen shake
+  }
+
+  drawCrosshair(mx, my) {
+    const ctx = this.ctx;
+    ctx.save();
+    ctx.strokeStyle = '#34d399';
+    ctx.lineWidth = 1.5;
+    ctx.shadowColor = '#10b981';
+    ctx.shadowBlur = 6;
+
+    // Outer circle
+    ctx.beginPath();
+    ctx.arc(mx, my, 9, 0, Math.PI * 2);
+    ctx.stroke();
+
+    // Center cross ticks
+    ctx.beginPath();
+    ctx.moveTo(mx - 15, my);
+    ctx.lineTo(mx - 4, my);
+    ctx.moveTo(mx + 4, my);
+    ctx.lineTo(mx + 15, my);
+    ctx.moveTo(mx, my - 15);
+    ctx.lineTo(mx, my - 4);
+    ctx.moveTo(mx, my + 4);
+    ctx.lineTo(mx, my + 15);
+    ctx.stroke();
+
+    // Center dot
+    ctx.fillStyle = '#6ee7b7';
+    ctx.beginPath();
+    ctx.arc(mx, my, 2, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.restore();
   }
 
   // -------------------------------------------------------------
@@ -438,29 +478,46 @@ export class GameRenderer {
     ctx.ellipse(0, -28 + bodyOffsetY, 24, 5, 0, 0, Math.PI * 2);
     ctx.fill();
 
-    // 7. DUAL REVOLVERS & ARMS
-    // Arm & Gun
+    // 7. DUAL REVOLVERS & ARMS (Rotating dynamically according to mouse aim)
     const recoil = player.shootCooldown > 0.08 ? -4 : 0;
-    ctx.fillStyle = '#3c2a21'; // Coat sleeve
-    ctx.fillRect(2, -10 + bodyOffsetY, 14, 6);
+    const armAngle = player.localAimAngle || 0;
+
+    ctx.save();
+    // Shoulder joint pivot point
+    ctx.translate(4, -10 + bodyOffsetY);
+    ctx.rotate(armAngle);
+
+    // Coat sleeve
+    ctx.fillStyle = '#3c2a21';
+    ctx.fillRect(-2, -3, 14, 6);
 
     // Revolver Body (Steel & Wood handle)
     ctx.fillStyle = '#475569';
-    ctx.fillRect(14 + recoil, -14 + bodyOffsetY, 14, 5); // Barrel
-    ctx.fillRect(10 + recoil, -10 + bodyOffsetY, 5, 8); // Grip
+    ctx.fillRect(12 + recoil, -4, 14, 5); // Barrel
+    ctx.fillRect(8 + recoil, 0, 5, 8); // Grip
     
     // Glowing Green Plasma Cylinder
     ctx.fillStyle = '#34d399';
     ctx.shadowColor = '#10b981';
     ctx.shadowBlur = 10;
-    ctx.fillRect(13 + recoil, -13 + bodyOffsetY, 5, 5);
+    ctx.fillRect(11 + recoil, -3, 5, 5);
     ctx.shadowBlur = 0;
 
     // Second gun held slightly behind / dual stance
     ctx.fillStyle = '#334155';
-    ctx.fillRect(10 + recoil, -6 + bodyOffsetY, 12, 4);
+    ctx.fillRect(8 + recoil, 3, 12, 4);
     ctx.fillStyle = '#34d399';
-    ctx.fillRect(9 + recoil, -5 + bodyOffsetY, 4, 4);
+    ctx.fillRect(7 + recoil, 4, 4, 3);
+
+    // Faint ethereal green laser targeting sight line
+    ctx.strokeStyle = 'rgba(52, 211, 153, 0.3)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(26 + recoil, -1.5);
+    ctx.lineTo(95, -1.5);
+    ctx.stroke();
+
+    ctx.restore();
 
     ctx.restore();
   }
@@ -872,6 +929,115 @@ export class GameRenderer {
     ctx.shadowBlur = 0;
 
     ctx.restore();
+    ctx.restore();
+  }
+
+  // -------------------------------------------------------------
+  // ZOMBIE ENEMY (RETRO PIXEL ART ZOMBIE INSPIRADO EN LA IMAGEN)
+  // -------------------------------------------------------------
+  drawZombie(zombie, time) {
+    const ctx = this.ctx;
+    ctx.save();
+    ctx.translate(zombie.x, zombie.y);
+    ctx.scale(zombie.dir, 1);
+
+    const flash = zombie.hitFlash > 0;
+    const walkBob = Math.sin(zombie.animTime * 2) * 2;
+    const legSwing = Math.sin(zombie.animTime * 2) * 6;
+    const armWave = Math.sin(zombie.animTime * 2 + 1) * 3;
+
+    // 1. PIERNAS Y PANTALONES ANDRAJOSOS (Gris/Marrón rasgado)
+    ctx.fillStyle = flash ? '#ffffff' : '#3f443b';
+    // Pierna trasera
+    ctx.fillRect(-8 - legSwing * 0.5, 12 + walkBob, 7, 18);
+    // Pierna delantera
+    ctx.fillRect(1 + legSwing * 0.5, 12 + walkBob, 7, 18);
+
+    // Pies descalzos de zombie verde putrefacto
+    ctx.fillStyle = flash ? '#ffffff' : '#5d7d3e';
+    ctx.fillRect(-9 - legSwing * 0.5, 28 + walkBob, 10, 4);
+    ctx.fillRect(0 + legSwing * 0.5, 28 + walkBob, 10, 4);
+
+    // Rodilla expuesta con carne verde pútrida (como en la referencia)
+    ctx.fillStyle = flash ? '#ffffff' : '#6b9247';
+    ctx.fillRect(3 + legSwing * 0.5, 18 + walkBob, 4, 4);
+
+    // 2. TORSO Y CAMISA ROTA DESGARRADA (Color canela/beige desgastado)
+    ctx.fillStyle = flash ? '#ffffff' : '#9c8e74';
+    ctx.beginPath();
+    ctx.moveTo(-10, -8 + walkBob);
+    ctx.lineTo(10, -8 + walkBob);
+    ctx.lineTo(12, 14 + walkBob);
+    // Borde inferior andrajoso y dentado
+    ctx.lineTo(6, 11 + walkBob);
+    ctx.lineTo(0, 15 + walkBob);
+    ctx.lineTo(-6, 12 + walkBob);
+    ctx.lineTo(-11, 14 + walkBob);
+    ctx.closePath();
+    ctx.fill();
+
+    // Desgarro en el pecho mostrando piel verde
+    ctx.fillStyle = flash ? '#ffffff' : '#527335';
+    ctx.fillRect(-2, -2 + walkBob, 5, 6);
+
+    // 3. BRAZOS ESTIRADOS HACIA ADELANTE (Pose clásica de zombie)
+    // Brazo trasero
+    ctx.fillStyle = flash ? '#ffffff' : '#4a682f';
+    ctx.fillRect(2, -6 + walkBob + armWave, 18, 5);
+    ctx.fillRect(18, -8 + walkBob + armWave, 6, 6);
+
+    // Manga delantera rasgada
+    ctx.fillStyle = flash ? '#ffffff' : '#887a62';
+    ctx.fillRect(2, -4 + walkBob - armWave, 6, 6);
+
+    // Brazo delantero estirado
+    ctx.fillStyle = flash ? '#ffffff' : '#628941';
+    ctx.fillRect(6, -4 + walkBob - armWave, 18, 5);
+    // Mano verde extendida con garras
+    ctx.fillRect(22, -6 + walkBob - armWave, 6, 7);
+    ctx.fillStyle = flash ? '#ffffff' : '#2d421a';
+    ctx.fillRect(26, -5 + walkBob - armWave, 2, 2);
+
+    // 4. CABEZA DE ZOMBIE (Piel verde podrida, ojos hundidos y cicatrices)
+    ctx.fillStyle = flash ? '#ffffff' : '#6b9247';
+    ctx.beginPath();
+    ctx.roundRect(-9, -28 + walkBob, 18, 20, 4);
+    ctx.fill();
+
+    // Mechones de pelo verde oscuro / cicatrices
+    ctx.fillStyle = '#2d3e1d';
+    ctx.fillRect(-8, -30 + walkBob, 4, 3);
+    ctx.fillRect(-2, -31 + walkBob, 5, 4);
+    ctx.fillRect(4, -30 + walkBob, 4, 3);
+
+    // Costuras / puntadas en la frente
+    ctx.fillStyle = '#1c2813';
+    ctx.fillRect(-4, -26 + walkBob, 8, 1.5);
+    ctx.fillRect(-2, -28 + walkBob, 1.5, 4);
+    ctx.fillRect(2, -28 + walkBob, 1.5, 4);
+
+    // Cuencas oculares oscuras y hundidas
+    ctx.fillStyle = '#182410';
+    ctx.fillRect(-6, -21 + walkBob, 5, 5);
+    ctx.fillRect(2, -21 + walkBob, 5, 5);
+
+    // Pupilas amarillas brillantes con brillo inquietante
+    ctx.fillStyle = '#fef08a';
+    ctx.shadowColor = '#eab308';
+    ctx.shadowBlur = 4;
+    ctx.fillRect(-5, -20 + walkBob, 2.5, 2.5);
+    ctx.fillRect(3, -20 + walkBob, 2.5, 2.5);
+    ctx.shadowBlur = 0;
+
+    // Boca abierta de par en par mostrando dientes
+    ctx.fillStyle = '#111827';
+    ctx.fillRect(-3, -13 + walkBob, 8, 4);
+    // Dientes descuidados
+    ctx.fillStyle = '#e2e8f0';
+    ctx.fillRect(-2, -14 + walkBob, 2, 2);
+    ctx.fillRect(1, -14 + walkBob, 2, 2);
+    ctx.fillRect(3, -12 + walkBob, 2, 2);
+
     ctx.restore();
   }
 

@@ -1,5 +1,5 @@
 // Main Game Engine & Controller
-import { Player, CactusEnemy, ScorpionEnemy, GhostWolfEnemy, FlyingEnemy, Boss3Eyes, WitchEnemy, ExitPortal, Pickup, FloatingText, Particle } from './entities.js';
+import { Player, CactusEnemy, ScorpionEnemy, GhostWolfEnemy, FlyingEnemy, Boss3Eyes, WitchEnemy, ZombieEnemy, ExitPortal, Pickup, FloatingText, Particle } from './entities.js';
 import { GameRenderer } from './renderer.js';
 import { soundManager } from './audio.js';
 import { TitleScreenManager } from './titleScreen.js';
@@ -48,8 +48,12 @@ class DesertGame {
     this.level2BannerTimer = null;
     this.witchSpawnTimer = 3.5;
     this.portal = null;
-    this.portalX = 0;
+    this.portalX = 30200; // Recorrido del Nivel 1: exactamente 3,000 metros (30,000 px)
     this.level2StartX = 0;
+    this.level2StartScore = 0;
+    this.zombieAnnounced = false;
+    this.witchAnnounced = false;
+    this.lastDistance10m = 0;
 
     this.bossWarningTimer = null;
 
@@ -128,9 +132,11 @@ class DesertGame {
         this.player.jump(soundManager, this.particles);
       }
 
-      // Shoot on Space
+      // Shoot on Space (towards mouse if inside canvas)
       if (e.code === 'Space' && this.state === 'playing') {
-        this.player.shoot(soundManager, this.projectiles, this.particles);
+        const targetX = this.mouse.inside ? this.mouse.x + this.cameraX : null;
+        const targetY = this.mouse.inside ? this.mouse.y : null;
+        this.player.shoot(soundManager, this.projectiles, this.particles, targetX, targetY);
       }
 
       // Special Fury on KeyC
@@ -148,7 +154,7 @@ class DesertGame {
       this.keys[e.code] = false;
     });
 
-    // Mouse Listeners on Canvas
+    // Mouse Listeners on Canvas (Real-time aiming and clicking)
     this.canvas.addEventListener('mousemove', (e) => {
       const rect = this.canvas.getBoundingClientRect();
       const scaleX = this.canvas.width / rect.width;
@@ -156,6 +162,10 @@ class DesertGame {
       this.mouse.x = (e.clientX - rect.left) * scaleX;
       this.mouse.y = (e.clientY - rect.top) * scaleY;
       this.mouse.inside = true;
+
+      if (this.state === 'playing') {
+        this.player.updateAim(this.mouse.x + this.cameraX, this.mouse.y);
+      }
     });
 
     this.canvas.addEventListener('mouseleave', () => {
@@ -168,6 +178,7 @@ class DesertGame {
       if (e.button === 0) { // Left click: shoot
         this.mouse.isDown = true;
         if (this.state === 'playing') {
+          this.player.updateAim(this.mouse.x + this.cameraX, this.mouse.y);
           this.player.shoot(soundManager, this.projectiles, this.particles, this.mouse.x + this.cameraX, this.mouse.y);
         }
       } else if (e.button === 2) { // Right click: Special Fury
@@ -283,11 +294,15 @@ class DesertGame {
     this.floatingTexts = [];
     this.boss = null;
 
-    // Reset Level 1 state
+    // Reset Level 1 state: portal a los 3000 metros (30200 px)
     this.level = 1;
-    this.portal = null;
-    this.portalX = 0;
+    this.portalX = 30200;
+    this.portal = new ExitPortal(this.portalX, this.groundY);
     this.level2StartX = 0;
+    this.level2StartScore = 0;
+    this.zombieAnnounced = false;
+    this.witchAnnounced = false;
+    this.lastDistance10m = 0;
     this.witchSpawnTimer = 3.5;
 
     // Hide Modals and reset warnings
@@ -362,14 +377,27 @@ class DesertGame {
       this.cameraX += (targetCam - this.cameraX) * 7.0 * dt;
     }
 
-    // Auto-fire handling: if mouse is pressed, aim at cursor; otherwise shoot straight in facing direction
+    // Update Player aim direction with mouse coordinates
+    if (this.mouse.inside) {
+      this.player.updateAim(this.mouse.x + this.cameraX, this.mouse.y);
+    }
+
+    // Avance de recorrido: cada 10 metros recorridos otorga +20 puntos (actualizado a 20 puntos)
+    const current10m = Math.floor((this.player.x - 200) / 100);
+    if (current10m > this.lastDistance10m) {
+      const diff = current10m - this.lastDistance10m;
+      this.score += diff * 20;
+      this.lastDistance10m = current10m;
+    }
+
+    // Auto-fire handling: if mouse is pressed or autofire on, aim directly at cursor
     if (this.autoFire || this.mouse.isDown) {
       this.autoFireTimer += dt;
       const rate = this.player.rapidFireTimer > 0 ? 0.08 : 0.16;
       if (this.autoFireTimer >= rate) {
         this.autoFireTimer = 0;
-        const targetX = this.mouse.isDown && this.mouse.inside ? this.mouse.x + this.cameraX : null;
-        const targetY = this.mouse.isDown && this.mouse.inside ? this.mouse.y : null;
+        const targetX = this.mouse.inside ? this.mouse.x + this.cameraX : null;
+        const targetY = this.mouse.inside ? this.mouse.y : null;
         this.player.shoot(soundManager, this.projectiles, this.particles, targetX, targetY);
       }
     }
@@ -412,9 +440,12 @@ class DesertGame {
     // Remove dead enemies and those left far behind the scrolling camera
     this.enemies = this.enemies.filter(e => e.alive && e.x > this.cameraX - 350);
 
-    // 5. Boss Trigger at 5000 PTS
-    if (this.score >= 5000 && !this.bossSpawned) {
-      this.triggerBossSpawn();
+    // 5. Boss Trigger en Nivel 2 al completar 2500m de recorrido
+    if (this.level === 2 && !this.bossSpawned) {
+      const level2MetersWalked = Math.max(0, Math.floor((this.player.x - this.level2StartX) / 10));
+      if (level2MetersWalked >= 2500) {
+        this.triggerBossSpawn();
+      }
     }
 
     // Update Boss
@@ -429,16 +460,15 @@ class DesertGame {
       }
     }
 
-    // 5.5 Update Exit Portal (Level 2 Finale)
-    if (this.portal) {
+    // 5.5 Update Exit Portal (Level 1 Portal leading to Level 2)
+    if (this.portal && this.level === 1) {
       this.portal.update(dt, this.particles);
 
-      // Check if Player touches the Exit Portal at the end of the road
+      // Check if Player reaches the Exit Portal at the end of Level 1 path
       const pHit = this.player.getHitbox();
       const portHit = this.portal.getHitbox();
       if (this.rectIntersect(pHit.x, pHit.y, pHit.width, pHit.height, portHit.x, portHit.y, portHit.width, portHit.height)) {
-        this.handlePortalVictory();
-        return;
+        this.handlePortalToLevel2();
       }
     }
 
@@ -473,42 +503,85 @@ class DesertGame {
       return;
     }
 
-    // Ground Enemies Spawning (Cactus, Scorpion, Wolf)
+    // Calcular distancia recorrida en el nivel actual para escalar la agresividad de los monstruos
+    const distMeters = this.level === 1 
+      ? Math.max(0, Math.floor((this.player.x - 200) / 10))
+      : Math.max(0, Math.floor((this.player.x - this.level2StartX) / 10));
+    const goalMeters = this.level === 1 ? 3000 : 3500;
+    const progressRatio = Math.min(2.0, distMeters / goalMeters);
+    // Agresividad de los monstruos que escala con el avance en el mapa (de 1.0x hasta más de 2.5x)
+    const aggression = 1.0 + progressRatio * 1.5;
+
+    // Ground Enemies Spawning (Cactus, Scorpion, Wolf, and Zombies at 1000 pts in Level 1)
     this.spawnTimer -= dt;
     if (this.spawnTimer <= 0) {
-      this.spawnTimer = Math.max(1.4, 3.2 - (this.score / 5000) * 1.2);
+      this.spawnTimer = Math.max(0.75, (2.6 - progressRatio * 1.3) / (1 + (aggression - 1) * 0.35));
 
-      const spawnRight = Math.random() < 0.85;
+      const spawnRight = Math.random() < 0.82;
       const spawnX = spawnRight ? this.cameraX + 960 + 60 + Math.random() * 120 : this.cameraX - 50;
       const rand = Math.random();
 
-      if (rand < 0.45) {
-        this.enemies.push(new CactusEnemy(spawnX, this.groundY));
-      } else if (rand < 0.78) {
-        this.enemies.push(new ScorpionEnemy(spawnX, this.groundY));
+      // En el Nivel 1 al tener 1000 puntos, aparecen los ZOMBIES de la imagen
+      if (this.level === 1 && this.score >= 1000) {
+        if (!this.zombieAnnounced) {
+          this.zombieAnnounced = true;
+          this.floatingTexts.push(new FloatingText(this.player.x, this.player.y - 70, '🧟 ¡HORDA ZOMBIE DESPERTADA (1000 PTS)!', '#84cc16', 15));
+        }
+
+        if (rand < 0.25) {
+          this.enemies.push(new CactusEnemy(spawnX, this.groundY, aggression));
+        } else if (rand < 0.45) {
+          this.enemies.push(new ScorpionEnemy(spawnX, this.groundY, aggression));
+        } else if (rand < 0.65) {
+          this.enemies.push(new GhostWolfEnemy(spawnX, this.groundY, aggression));
+        } else {
+          this.enemies.push(new ZombieEnemy(spawnX, this.groundY, aggression));
+        }
       } else {
-        this.enemies.push(new GhostWolfEnemy(spawnX, this.groundY));
+        if (rand < 0.40) {
+          this.enemies.push(new CactusEnemy(spawnX, this.groundY, aggression));
+        } else if (rand < 0.72) {
+          this.enemies.push(new ScorpionEnemy(spawnX, this.groundY, aggression));
+        } else {
+          this.enemies.push(new GhostWolfEnemy(spawnX, this.groundY, aggression));
+        }
+      }
+
+      // Con mayor avance en el mapa, los monstruos se vuelven más agresivos y generan emboscadas dobles
+      if (aggression > 1.4 && Math.random() < 0.35) {
+        const flankX = spawnRight ? this.cameraX - 60 : this.cameraX + 960 + 80;
+        if (Math.random() < 0.5) {
+          this.enemies.push(new GhostWolfEnemy(flankX, this.groundY, aggression));
+        } else {
+          this.enemies.push(new ScorpionEnemy(flankX, this.groundY, aggression));
+        }
       }
     }
 
     // MONSTRUOS VOLADORES (Flying Bats / Demon Eyes)
-    // Requirement: "que aparescan moustro voladores"
     this.flyingSpawnTimer -= dt;
     if (this.flyingSpawnTimer <= 0) {
-      this.flyingSpawnTimer = Math.max(2.8, 5.0 - (this.score / 5000) * 1.5);
+      this.flyingSpawnTimer = Math.max(1.6, (4.4 - progressRatio * 1.8) / (1 + (aggression - 1) * 0.35));
       const spawnX = this.cameraX + 960 + 50 + Math.random() * 100;
       const spawnY = 80 + Math.random() * 140;
-      this.enemies.push(new FlyingEnemy(spawnX, spawnY));
+      this.enemies.push(new FlyingEnemy(spawnX, spawnY, aggression));
     }
 
-    // NIVEL 2 NUEVO MONSTRUO: LA BRUJA VOLADORA EN ESCOBA
+    // NIVEL 2: LA BRUJA VOLADORA APARECE AL TENER 1000 PUNTOS
     if (this.level === 2) {
-      this.witchSpawnTimer -= dt;
-      if (this.witchSpawnTimer <= 0) {
-        this.witchSpawnTimer = 3.2 + Math.random() * 2.5;
-        const spawnX = this.cameraX + 960 + 70 + Math.random() * 120;
-        const spawnY = 90 + Math.random() * 120;
-        this.enemies.push(new WitchEnemy(spawnX, spawnY));
+      const lvl2Score = this.score - this.level2StartScore;
+      if (lvl2Score >= 1000) {
+        if (!this.witchAnnounced) {
+          this.witchAnnounced = true;
+          this.floatingTexts.push(new FloatingText(this.player.x, this.player.y - 70, '🧙‍♀️ ¡BRUJAS EN ESCOBA LIBERADAS (1000 PTS)!', '#facc15', 15));
+        }
+        this.witchSpawnTimer -= dt;
+        if (this.witchSpawnTimer <= 0) {
+          this.witchSpawnTimer = Math.max(1.8, (3.0 + Math.random() * 2.0) / aggression);
+          const spawnX = this.cameraX + 960 + 70 + Math.random() * 120;
+          const spawnY = 90 + Math.random() * 120;
+          this.enemies.push(new WitchEnemy(spawnX, spawnY, aggression));
+        }
       }
     }
   }
@@ -544,46 +617,56 @@ class DesertGame {
     this.boss = new Boss3Eyes(this.cameraX + 580, this.groundY);
   }
 
-  handleBossVictory() {
-    this.bossDefeated = true;
-    soundManager.playExplosion(true);
-    this.renderer.addScreenShake(20, 3.0);
+  handlePortalToLevel2() {
+    soundManager.playPortalWarp();
+    this.renderer.addScreenShake(20, 2.0);
 
-    // Spawn massive celebration fireworks particles
-    for (let i = 0; i < 90; i++) {
+    // Cosmic portal particles
+    for (let i = 0; i < 85; i++) {
       const a = Math.random() * Math.PI * 2;
-      const s = 100 + Math.random() * 350;
+      const s = 100 + Math.random() * 340;
       this.particles.push(new Particle(
-        this.boss.x, this.boss.y,
+        this.player.x, this.player.y,
         Math.cos(a) * s, Math.sin(a) * s,
-        Math.random() < 0.5 ? '#facc15' : '#ef4444', 6, 1.2, 'circle'
+        Math.random() < 0.5 ? '#38bdf8' : '#a855f7', 5, 1.2, 'spark'
       ));
     }
 
-    this.score += this.boss.points;
-    this.updateHighScore();
-    this.sendScoreToBackend();
-
-    // DESBLOQUEAR NIVEL 2 TRAS DERROTAR AL MONSTRUO DE 3 OJOS
-    this.level = 2;
-    this.level2StartX = this.player.x;
-    // Final del camino donde se ubica el Portal de Salida (aprox 260m)
-    this.portalX = this.level2StartX + 2600;
-    this.portal = new ExitPortal(this.portalX, this.groundY);
-
-    // Ocultar barra de salud del jefe y volver a música ambiental
-    this.ui.bossHud.classList.add('hidden');
-    soundManager.setBossMode(false);
-
-    // Notificación flotante
+    // Floating text notification
     this.floatingTexts.push(new FloatingText(
       this.player.x, this.player.y - 70,
-      '✨ ¡NIVEL 2 DESBLOQUEADO! 🧙‍♀️',
-      '#c084fc',
+      '🌀 ¡PORTAL COMPLETADO! CARGANDO NIVEL 2 🌀',
+      '#38bdf8',
       16
     ));
 
-    // Mostrar cartel de Nivel 2 Desbloqueado durante 4.8 segundos
+    // Show Level 2 Interstitial Screen (Imagen oficial con LEVEL 2 - PRESS BUTTON 1)
+    if (this.titleScreenManager) {
+      this.titleScreenManager.showLevel2Transition();
+    } else {
+      this.startLevel2();
+    }
+  }
+
+  startLevel2() {
+    this.level = 2;
+    this.state = 'playing';
+    this.level2StartX = this.player.x;
+    this.level2StartScore = this.score;
+    this.witchAnnounced = false;
+    this.portal = null; // Close portal once traversed
+
+    soundManager.setBossMode(false);
+    soundManager.startMusic();
+
+    this.floatingTexts.push(new FloatingText(
+      this.player.x, this.player.y - 70,
+      '🧙‍♀️ ¡NIVEL 2: 3500 METROS &bull; MONSTRUO A LOS 2500M! 👁️',
+      '#f59e0b',
+      16
+    ));
+
+    // Show Level 2 Banner for 4.8 seconds
     if (this.ui.level2Banner) {
       this.ui.level2Banner.classList.remove('hidden');
       if (this.level2BannerTimer) clearTimeout(this.level2BannerTimer);
@@ -594,32 +677,43 @@ class DesertGame {
     }
   }
 
-  handlePortalVictory() {
-    if (this.state === 'victory') return;
-    this.state = 'victory';
-    soundManager.playPortalWarp();
-    this.renderer.addScreenShake(20, 2.5);
+  handleBossVictory() {
+    this.bossDefeated = true;
+    soundManager.playExplosion(true);
+    this.renderer.addScreenShake(24, 3.5);
 
-    // Ráfaga cósmica de partículas en el portal
-    for (let i = 0; i < 80; i++) {
+    // Spawn massive celebration fireworks particles
+    for (let i = 0; i < 110; i++) {
       const a = Math.random() * Math.PI * 2;
-      const s = 120 + Math.random() * 320;
+      const s = 120 + Math.random() * 420;
       this.particles.push(new Particle(
-        this.portal.x, this.portal.y,
+        this.boss.x, this.boss.y,
         Math.cos(a) * s, Math.sin(a) * s,
-        Math.random() < 0.5 ? '#38bdf8' : '#a855f7', 6, 1.4, 'spark'
+        Math.random() < 0.5 ? '#facc15' : '#ef4444', 6, 1.4, 'circle'
       ));
     }
 
-    this.score += 5000; // Bonus por completar el camino y cruzar el portal
+    this.score += this.boss.points;
     this.updateHighScore();
     this.sendScoreToBackend();
 
+    // Hide Boss HUD and revert to ambient music
+    this.ui.bossHud.classList.add('hidden');
+    soundManager.setBossMode(false);
+
+    this.floatingTexts.push(new FloatingText(
+      this.boss.x, this.boss.y - 60,
+      '¡¡¡MONSTRUO DE 3 OJOS DESTRUIDO!!!',
+      '#facc15',
+      18
+    ));
+
     setTimeout(() => {
+      this.state = 'victory';
       this.ui.victoryScore.textContent = this.score;
       this.ui.victoryScreen.classList.remove('hidden');
       soundManager.stopMusic();
-    }, 1200);
+    }, 1500);
   }
 
   handleGameOver() {
@@ -759,8 +853,9 @@ class DesertGame {
       this.ui.comboNumber.textContent = `x${this.combo}`;
     }
 
-    const earnedPoints = enemy.points * (1 + Math.min(this.combo * 0.15, 2.0));
-    this.score += Math.round(earnedPoints);
+    const basePoints = Math.max(20, Math.round(enemy.points / 20) * 20);
+    const earnedPoints = Math.max(20, Math.round((basePoints * (1 + Math.min(this.combo * 0.15, 2.0))) / 20) * 20);
+    this.score += earnedPoints;
 
     // Charge fury (+10% for faster special access)
     this.player.fury = Math.min(100, this.player.fury + 10);
@@ -770,12 +865,12 @@ class DesertGame {
     // Floating Points
     this.floatingTexts.push(new FloatingText(
       enemy.x, enemy.y - 15,
-      `+${Math.round(earnedPoints)}`,
+      `+${earnedPoints}`,
       '#facc15'
     ));
 
     // Death gore & sand puff
-    const color = enemy.type === 'cactus' ? '#22c55e' : (enemy.type === 'wolf' ? '#38bdf8' : (enemy.type === 'flying' ? '#c084fc' : (enemy.type === 'witch' ? '#a855f7' : '#b45309')));
+    const color = enemy.type === 'cactus' ? '#22c55e' : (enemy.type === 'wolf' ? '#38bdf8' : (enemy.type === 'flying' ? '#c084fc' : (enemy.type === 'witch' ? '#a855f7' : (enemy.type === 'zombie' ? '#65a30d' : '#b45309'))));
     for (let i = 0; i < 18; i++) {
       this.particles.push(new Particle(
         enemy.x, enemy.y,
@@ -845,30 +940,38 @@ class DesertGame {
       this.ui.levelCounter.textContent = this.level;
     }
 
-    // Boss Progress Bar (Level 1) or Portal Progress Bar (Level 2)
+    // Barra de Progreso y Recorrido
     if (this.level === 1) {
       if (this.ui.bossGoalTitle) {
-        this.ui.bossGoalTitle.textContent = 'INVOCACIÓN DEL JEFE (5000 PTS)';
+        this.ui.bossGoalTitle.innerHTML = '👣 RECORRIDO NIVEL 1 &bull; 3000 METROS HACIA EL PORTAL 🌀';
       }
-      if (!this.bossSpawned) {
-        const prog = Math.min(100, (this.score / 5000) * 100);
-        this.ui.bossProgressFill.style.width = `${prog}%`;
-        this.ui.bossProgressText.textContent = `${Math.min(5000, this.score)} / 5000 PTS`;
-      } else {
-        this.ui.bossProgressFill.style.width = '100%';
-        this.ui.bossProgressText.textContent = '¡¡¡JEFE EN COMBATE!!!';
-      }
-    } else {
-      // NIVEL 2: CAMINO HACIA EL PORTAL DE SALIDA
-      if (this.ui.bossGoalTitle) {
-        this.ui.bossGoalTitle.textContent = '🌀 FINAL DEL CAMINO: PORTAL DE SALIDA 🌀';
-      }
-      const totalDist = Math.max(1, this.portalX - this.level2StartX);
-      const currentDist = Math.max(0, this.player.x - this.level2StartX);
-      const prog = Math.min(100, Math.max(0, (currentDist / totalDist) * 100));
-      const remainingMeters = Math.max(0, Math.round((this.portalX - this.player.x) / 10));
+      const distMeters = Math.max(0, Math.floor((this.player.x - 200) / 10));
+      const totalMeters = 3000;
+      const prog = Math.min(100, (distMeters / totalMeters) * 100);
+      const remainingMeters = Math.max(0, totalMeters - distMeters);
+
       this.ui.bossProgressFill.style.width = `${prog}%`;
-      this.ui.bossProgressText.textContent = remainingMeters <= 0 ? '¡¡¡CRUZA EL PORTAL!!!' : `${remainingMeters} m AL PORTAL`;
+      this.ui.bossProgressText.textContent = remainingMeters <= 0 
+        ? '¡¡¡LLEGASTE AL PORTAL! CRÚZALO PARA EL NIVEL 2!!!' 
+        : `RECORRIDO: ${distMeters} m / ${totalMeters} m (${Math.floor(prog)}%) - FALTAN ${remainingMeters} m`;
+    } else {
+      // NIVEL 2: 3500 METROS TOTALES, MONSTRUO A LOS 2500M
+      const level2DistMeters = Math.max(0, Math.floor((this.player.x - this.level2StartX) / 10));
+      if (!this.bossSpawned) {
+        if (this.ui.bossGoalTitle) {
+          this.ui.bossGoalTitle.innerHTML = '👣 RECORRIDO NIVEL 2 (3500 m) &bull; JEFE A LOS 2500 m 👁️';
+        }
+        const prog = Math.min(100, (level2DistMeters / 2500) * 100);
+        const remainingMeters = Math.max(0, 2500 - level2DistMeters);
+        this.ui.bossProgressFill.style.width = `${prog}%`;
+        this.ui.bossProgressText.textContent = `RECORRIDO NIVEL 2: ${level2DistMeters} m / 2500 m (${Math.floor(prog)}%) - FALTAN ${remainingMeters} m`;
+      } else {
+        if (this.ui.bossGoalTitle) {
+          this.ui.bossGoalTitle.innerHTML = '👁️ COMBATE CONTRA EL MONSTRUO DE 3 OJOS (8000 HP) 👁️';
+        }
+        this.ui.bossProgressFill.style.width = '100%';
+        this.ui.bossProgressText.textContent = '¡¡¡MONSTRUO DE 3 OJOS EN COMBATE (8000 HP)!!!';
+      }
     }
 
     // Boss HP Bar

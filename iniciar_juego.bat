@@ -7,10 +7,10 @@ echo ================================================================
 echo Iniciando servidor en el entorno virtual (.venv)...
 echo.
 if not exist ".venv\Scripts\python.exe" (
-    echo [ERROR] No se encontro el entorno virtual en .venv
-    echo Creando entorno virtual...
+    echo [INFO] Creando entorno virtual .venv...
     python -m venv .venv
     .venv\Scripts\pip install -r requirements.txt
 )
+start http://localhost:5000
 .venv\Scripts\python.exe server.py
 pause

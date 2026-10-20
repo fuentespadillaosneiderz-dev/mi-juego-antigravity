@@ -41,16 +41,16 @@
         </div>
       </div>
 
-      <!-- Centro: Progreso al Jefe de 5000 pts -->
-      <div class="hud-group boss-tracker">
+      <!-- Centro: Barra de Proceso de Avance y Recorrido -->
+      <div class="hud-group boss-tracker path-progress-tracker">
         <div class="boss-goal-header">
-          <span class="flame-icon">🔥</span>
-          <span id="boss-goal-title">INVOCACIÓN DEL JEFE (5000 PTS)</span>
-          <span class="flame-icon">🔥</span>
+          <span class="flame-icon">👣</span>
+          <span id="boss-goal-title">RECORRIDO NIVEL 1 (3000 m)</span>
+          <span class="flame-icon">🌀</span>
         </div>
         <div class="boss-progress-bar-wrapper">
           <div id="boss-progress-fill" class="bar-fill boss-progress-fill" style="width: 0%;"></div>
-          <span id="boss-progress-text">0 / 5000 PTS</span>
+          <span id="boss-progress-text">0 m / 3000 m (0%)</span>
         </div>
       </div>
 
@@ -78,7 +78,7 @@
       </div>
     </header>
 
-    <!-- Barra de Vida del Jefe (Aparece a 5000 pts) -->
+    <!-- Barra de Vida del Jefe (Nivel 2 - 1000 pts) -->
     <div id="boss-hud" class="boss-hud hidden">
       <div class="boss-title-row">
         <span class="boss-skull">👁️</span>
@@ -88,7 +88,7 @@
       <div class="boss-health-frame">
         <div id="boss-health-fill" class="boss-hp-fill" style="width: 100%;"></div>
         <div id="boss-health-ghost" class="boss-hp-ghost" style="width: 100%;"></div>
-        <span id="boss-health-text">3500 / 3500 HP</span>
+        <span id="boss-health-text">8000 / 8000 HP</span>
       </div>
     </div>
 
@@ -108,9 +108,9 @@
 
       <!-- Cartel de Desbloqueo de Nivel 2 -->
       <div id="level2-banner" class="level2-banner hidden">
-        <div class="level2-tape">✨ ¡¡¡ NIVEL 2 DESBLOQUEADO !!! ✨</div>
-        <h2 class="level2-title">¡LA NOCHE DE LA BRUJA Y LAS HORDAS DEL DESIERTO!</h2>
-        <p class="level2-sub">¡AVANZA HASTA EL FINAL DEL CAMINO Y CRUZA EL PORTAL DE SALIDA!</p>
+        <div class="level2-tape">✨ ¡¡¡ BIENVENIDO AL NIVEL 2 !!! ✨</div>
+        <h2 class="level2-title">¡EL REFUGIO DE LAS BRUJAS VOLADORAS!</h2>
+        <p class="level2-sub">¡OBTÉN 1000 PUNTOS PARA INVOCAR AL COLOSAL MONSTRUO DE 3 OJOS!</p>
       </div>
 
       <!-- Mensajes flotantes y notificaciones in-game -->
@@ -199,7 +199,7 @@
             <p>Bajo la luna carmesí del desierto maldito, el Pistolero Espectral empuña sus revólveres gemelos de fuego esmeralda.</p>
             <p>Hordas de <strong>monstruos terrestres y voladores</strong> lanzan proyectiles mágicos y espinas. ¡Destrúyelos a todos!</p>
             <div class="mission-highlight">
-              🎯 <strong>MISIÓN PRINCIPAL:</strong> Alcanza <strong>5,000 PUNTOS</strong> para invocar y derrotar al colosal <strong>MONSTRUO DE 3 OJOS</strong>.
+              🎯 <strong>MISIÓN:</strong> Recorre <strong>3,000 METROS</strong> en el Nivel 1 para encontrar el Portal. A los <strong>1,000 PUNTOS</strong> despertarán los <strong>Zombies</strong> de la imagen con ropa rasgada. En el Nivel 2 (de <strong>3,500 METROS</strong>), a los 1,000 puntos atacarán las <strong>Brujas Voladoras</strong> y al alcanzar los <strong>2,500 METROS</strong> surgirá el colosal <strong>MONSTRUO DE 3 OJOS</strong> (8,000 HP). ¡Cada 10 metros recorridos otorga +10 puntos!
             </div>
           </div>
 
@@ -207,21 +207,21 @@
             <div class="inst-col">
               <h4>🎮 CONTROLES:</h4>
               <ul>
+                <li><kbd>Ratón / Mouse</kbd>: <strong>Apuntar en tiempo real</strong> en 360°</li>
+                <li><kbd>Click Izq</kbd> / <kbd>Espacio</kbd>: Disparar revólveres hacia el cursor</li>
                 <li><kbd>Flecha Arriba</kbd> o <kbd>W</kbd>: Saltar (¡Doble Salto disponible!)</li>
                 <li><kbd>Flechas Izq / Der</kbd> o <kbd>A</kbd> / <kbd>D</kbd>: Avanzar y Retroceder</li>
                 <li><kbd>Flecha Abajo</kbd> o <kbd>S</kbd>: Agacharse / Bajar rápido</li>
-                <li><kbd>Espacio</kbd> o <kbd>Click Izq</kbd>: Disparar revólveres</li>
                 <li><kbd>C</kbd> o <kbd>Click Der</kbd>: Super Furia Espectral</li>
               </ul>
             </div>
             <div class="inst-col">
-              <h4>👾 ENEMIGOS Y ATAQUES:</h4>
+              <h4>👾 ENEMIGOS Y NIVELES:</h4>
               <ul>
-                <li>🌵 <strong>Cactus Maldito:</strong> Ráfagas de espinas en arco.</li>
-                <li>🦂 <strong>Escorpión del Desierto:</strong> Orbes de veneno corrosivo.</li>
-                <li>🐺 <strong>Lobo Espectral:</strong> Embestidas fantasmales veloces.</li>
-                <li>🦇 <strong>Monstruos Voladores:</strong> Bolas de plasma violeta teledirigidas.</li>
-                <li>👁️ <strong>Jefe de 3 Ojos (5000 pts):</strong> Rayos láser triples y terremoto de arena.</li>
+                <li>🌀 <strong>Nivel 1 (3000 m):</strong> Cáctus, escorpiones, lobos y <strong>Zombies (a los 1000 pts)</strong>.</li>
+                <li>🧙‍♀️ <strong>Brujas Voladoras (Nivel 2 - 1000 pts):</strong> Surcan en escoba disparando esferas mágicas.</li>
+                <li>👁️ <strong>Monstruo de 3 Ojos (Nivel 2 - 2500 m):</strong> Rayos láser triples, bolas de energía y 8,000 HP.</li>
+                <li>🏃 <strong>Puntuación por avance:</strong> Cada 10 metros recorridos suman +10 puntos.</li>
               </ul>
             </div>
           </div>
@@ -236,43 +236,36 @@
     </div>
 
     <!-- ===================================================================
-         PANTALLA 2: SEGUNDA VENTANA (EL PISTOLERO ESPECTRAL Y MISIÓN)
-         Aparece al presionar 'PLAY GAME' en la primera imagen
+         TRANSICIÓN A NIVEL 2: PANTALLA OFICIAL DE LEVEL 2
+         Aparece al completar el Nivel 1 cruzando el Portal
          =================================================================== -->
     <div id="screen-second" class="screen-modal hidden">
       <div class="screen-stage-wrapper">
-        <!-- Imagen Base 2: Pistolero Esqueleto con Linterna, Fuego Verde y HEART x 3 -->
-        <img class="screen-bg-img" src="./assets/media_1791978708343.png" alt="Pistolero Espectral Heart x 3">
+        <!-- Imagen Oficial: LEVEL 2 - PRESS BUTTON 1 TO CONFIRM -->
+        <img class="screen-bg-img" src="./assets/media_1791978708343.png" alt="Level 2 Transition Screen">
         
-        <!-- Canvas de Efectos Visuales: Latido de corazón, Luz de linterna cálida, Fuego verde en cowboy -->
+        <!-- Canvas de Efectos Visuales: Latido, Fuego verde y Luz de linterna -->
         <canvas id="second-fx-canvas" class="screen-fx-canvas" width="1024" height="628"></canvas>
 
-        <!-- Tarjeta de Despliegue de Misión y Controles -->
-        <div class="second-briefing-card">
+        <!-- Tarjeta de Confirmación de Nivel 2 -->
+        <div class="second-briefing-card level2-transition-card">
           <div class="briefing-header">
-            <span class="briefing-badge">❤️ 3 VIDAS</span>
-            <span class="briefing-title">THE NIGHT HUNTER &bull; LISTO PARA LA CACERÍA</span>
-            <span class="briefing-badge green">🔥 FUEGO ESPECTRAL</span>
+            <span class="briefing-badge green">✨ ¡NIVEL 1 SUPERADO! ✨</span>
+            <span class="briefing-title">SIGUIENTE ETAPA: NIVEL 2</span>
+            <span class="briefing-badge">👁️ JEFE 8,000 HP</span>
           </div>
           
           <p class="briefing-desc">
-            Empuña tus revólveres de fuego verde y adéntrate en el desierto maldito. Elimina hordas de criaturas y alcanza <strong>5,000 PUNTOS</strong> para invocar al temible Monstruo de 3 Ojos.
+            ¡Has completado los 3,000 metros del Nivel 1! En el <strong>NIVEL 2 (3,500 METROS)</strong> a los 1,000 puntos atacarán las <strong>Brujas Voladoras en Escoba</strong> y al completar <strong>2,500 METROS</strong> de marcha surgirá el colosal <strong>Monstruo de 3 Ojos</strong> con 8,000 HP, bolas de energía y rayos láser triples.
           </p>
 
-          <div class="briefing-controls-pill">
-            <span><kbd>WASD</kbd> / <kbd>▲◄▼►</kbd> Moverse y Saltar</span>
-            <span><kbd>ESPACIO</kbd> / <kbd>CLICK</kbd> Disparar</span>
-            <span><kbd>C</kbd> Furia Espectral</span>
-          </div>
-
           <div class="briefing-actions">
-            <button id="btn-back-to-title" class="btn-briefing-secondary">
-              ◄ VOLVER AL MENÚ
-            </button>
-            <button id="btn-start-action" class="btn-briefing-primary">
-              💀 ¡ENTRAR AL DESIERTO (PLAY)! 💀
+            <button id="btn-start-action" class="btn-briefing-primary btn-confirm-level2">
+              <span class="btn-key-icon">🔘 [BUTTON 1]</span>
+              <span>¡CONFIRMAR Y COMENZAR NIVEL 2!</span>
             </button>
           </div>
+          <p class="confirm-hint">Presiona <kbd>1</kbd>, <kbd>ESPACIO</kbd> o <kbd>ENTER</kbd> para confirmar</p>
         </div>
       </div>
     </div>
@@ -313,10 +306,10 @@
     <!-- Pantalla de Victoria Definitiva (Cruzando el Portal) -->
     <div id="victory-screen" class="overlay-modal hidden">
       <div class="modal-card victory">
-        <div class="trophy-victory">🏆🌀✨</div>
+        <div class="trophy-victory">🏆👁️✨</div>
         <h2 class="victory-title">¡¡¡VICTORIA DEFINITIVA!!!</h2>
-        <h3 class="victory-sub">¡HAS CRUZADO EL PORTAL Y ESCAPADO DEL DESIERTO!</h3>
-        <p class="victory-text">Derrotaste al colosal Monstruo de 3 Ojos en el Nivel 1 y sobreviviste a las Brujas Voladoras hasta alcanzar el final del camino y cruzar el portal de escape.</p>
+        <h3 class="victory-sub">¡EL MONSTRUO DE 3 OJOS HA SIDO DERROTADO!</h3>
+        <p class="victory-text">Cruzaste el portal hacia el Nivel 2, venciste a las brujas voladoras en escoba y destruiste al colosal Monstruo de 3 Ojos superando sus rayos láser y bolas de energía destructivas.</p>
         
         <div class="stats-summary victory-stats">
           <div class="stat-item">
@@ -328,8 +321,8 @@
             <strong style="color: #4ade80;">NIVEL 1 & NIVEL 2</strong>
           </div>
           <div class="stat-item">
-            <span>PORTAL CRUZADO</span>
-            <strong style="color: #38bdf8;">ÉXITO TOTAL 🌀</strong>
+            <span>MONSTRUO 3 OJOS</span>
+            <strong style="color: #38bdf8;">DESTRUIDO 👁️💥</strong>
           </div>
         </div>
 

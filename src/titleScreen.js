@@ -176,7 +176,7 @@ export class TitleScreenManager {
         soundManager.init();
         soundManager.playMenuSelect();
         soundManager.playSpookyTransition();
-        this.goToSecondScreen();
+        this.startGameplay();
       });
     }
 
@@ -191,7 +191,7 @@ export class TitleScreenManager {
         e.preventDefault();
         soundManager.init();
         soundManager.playMenuSelect();
-        this.startGameplay();
+        this.confirmLevel2();
       });
     }
 
@@ -235,14 +235,14 @@ export class TitleScreenManager {
           soundManager.init();
           soundManager.playMenuSelect();
           soundManager.playSpookyTransition();
-          this.goToSecondScreen();
+          this.startGameplay();
         }
       } else if (this.activeScreen === 'second') {
-        if (e.code === 'Enter' || e.code === 'Space') {
+        if (e.code === 'Enter' || e.code === 'Space' || e.code === 'Digit1' || e.code === 'Numpad1') {
           e.preventDefault();
           soundManager.init();
           soundManager.playMenuSelect();
-          this.startGameplay();
+          this.confirmLevel2();
         } else if (e.code === 'Escape') {
           e.preventDefault();
           this.goToTitleScreen();
@@ -270,8 +270,11 @@ export class TitleScreenManager {
     }
   }
 
-  goToSecondScreen() {
+  showLevel2Transition() {
     this.activeScreen = 'second';
+    this.game.state = 'level2_transition';
+    soundManager.stopMusic();
+
     if (this.screenTitle) {
       this.screenTitle.classList.remove('active');
       this.screenTitle.classList.add('hidden');
@@ -280,6 +283,22 @@ export class TitleScreenManager {
       this.screenSecond.classList.remove('hidden');
       this.screenSecond.classList.add('active');
     }
+  }
+
+  confirmLevel2() {
+    this.activeScreen = 'game';
+    if (this.screenSecond) {
+      this.screenSecond.classList.remove('active');
+      this.screenSecond.classList.add('hidden');
+    }
+    if (this.screenTitle) {
+      this.screenTitle.classList.add('hidden');
+    }
+    this.game.startLevel2();
+  }
+
+  goToSecondScreen() {
+    this.showLevel2Transition();
   }
 
   goToTitleScreen() {
