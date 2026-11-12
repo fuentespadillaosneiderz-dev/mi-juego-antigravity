@@ -417,6 +417,302 @@ class SoundManager {
     osc.start(now);
     osc.stop(now + 0.55);
   }
+
+  // Ghost Train Haunting Steam Whistle (Multiple dissonant minor chords with eerie vibrato)
+  playTrainWhistle() {
+    if (!this.enabled || !this.ctx) return;
+    const now = this.ctx.currentTime;
+    const chords = [311.13, 370.0, 466.16, 622.25]; // D# minor haunted train chord
+
+    chords.forEach((freq, idx) => {
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = idx % 2 === 0 ? 'sawtooth' : 'triangle';
+      
+      // Pitch swell and spooky steam pitch drop
+      osc.frequency.setValueAtTime(freq * 0.94, now);
+      osc.frequency.exponentialRampToValueAtTime(freq * 1.02, now + 0.35);
+      osc.frequency.exponentialRampToValueAtTime(freq * 0.91, now + 1.8);
+
+      gain.gain.setValueAtTime(0.001, now);
+      gain.gain.linearRampToValueAtTime(0.12, now + 0.25);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 1.9);
+
+      osc.connect(gain);
+      gain.connect(this.ctx.destination);
+      osc.start(now);
+      osc.stop(now + 1.95);
+    });
+  }
+
+  // Rhythmic Ghost Train Chugging Sound
+  playTrainChug() {
+    if (!this.enabled || !this.ctx) return;
+    const now = this.ctx.currentTime;
+    const bufferSize = Math.floor(this.ctx.sampleRate * 0.08);
+    const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+    const d = buffer.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) {
+      d[i] = (Math.random() * 2 - 1) * Math.exp(-i / (bufferSize * 0.3));
+    }
+    const noise = this.ctx.createBufferSource();
+    noise.buffer = buffer;
+
+    const filter = this.ctx.createBiquadFilter();
+    filter.type = 'lowpass';
+    filter.frequency.setValueAtTime(450, now);
+
+    const gain = this.ctx.createGain();
+    gain.gain.setValueAtTime(0.18, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
+
+    noise.connect(filter);
+    filter.connect(gain);
+    gain.connect(this.ctx.destination);
+    noise.start(now);
+  }
+
+  // Intense Level 3 Warning Danger Alarm Siren
+  playDangerAlarm() {
+    if (!this.enabled || !this.ctx) return;
+    const now = this.ctx.currentTime;
+    
+    // Two high-intensity pulsing alert warbles
+    for (let pulse = 0; pulse < 3; pulse++) {
+      const pStart = now + pulse * 0.35;
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(740, pStart);
+      osc.frequency.linearRampToValueAtTime(980, pStart + 0.16);
+      osc.frequency.linearRampToValueAtTime(580, pStart + 0.3);
+
+      gain.gain.setValueAtTime(0.24, pStart);
+      gain.gain.exponentialRampToValueAtTime(0.001, pStart + 0.32);
+
+      osc.connect(gain);
+      gain.connect(this.ctx.destination);
+      osc.start(pStart);
+      osc.stop(pStart + 0.33);
+    }
+  }
+
+  // Skull Clock Tick / Bone Click
+  playClockTick() {
+    if (!this.enabled || !this.ctx) return;
+    const now = this.ctx.currentTime;
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(1200, now);
+    osc.frequency.exponentialRampToValueAtTime(200, now + 0.02);
+
+    gain.gain.setValueAtTime(0.08, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.02);
+
+    osc.connect(gain);
+    gain.connect(this.ctx.destination);
+    osc.start(now);
+    osc.stop(now + 0.02);
+  }
+
+  // Player Death Sound: Bone crumble, pitch drop & mournful spectral chime
+  playPlayerDeath() {
+    if (!this.enabled || !this.ctx) return;
+    const now = this.ctx.currentTime;
+    
+    // Low dark drone
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(220, now);
+    osc.frequency.exponentialRampToValueAtTime(35, now + 0.8);
+    gain.gain.setValueAtTime(0.35, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.85);
+    osc.connect(gain);
+    gain.connect(this.ctx.destination);
+    osc.start(now);
+    osc.stop(now + 0.85);
+
+    // Eerie funeral church bell / gong dissonance
+    [185.0, 246.94, 277.18].forEach(freq => {
+      const gOsc = this.ctx.createOscillator();
+      const gGain = this.ctx.createGain();
+      gOsc.type = 'sine';
+      gOsc.frequency.setValueAtTime(freq, now + 0.1);
+      gGain.gain.setValueAtTime(0.15, now + 0.1);
+      gGain.gain.exponentialRampToValueAtTime(0.001, now + 1.2);
+      gOsc.connect(gGain);
+      gGain.connect(this.ctx.destination);
+      gOsc.start(now + 0.1);
+      gOsc.stop(now + 1.25);
+    });
+  }
+  // Level 4: Roof Explosion sound (small blast cutting a hole in the roof)
+  playRoofExplosion() {
+    if (!this.enabled || !this.ctx) return;
+    const now = this.ctx.currentTime;
+
+    const bufferSize = this.ctx.sampleRate * 0.45;
+    const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) {
+      data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (bufferSize * 0.18));
+    }
+    const noise = this.ctx.createBufferSource();
+    noise.buffer = buffer;
+
+    const filter = this.ctx.createBiquadFilter();
+    filter.type = 'lowpass';
+    filter.frequency.setValueAtTime(800, now);
+    filter.frequency.exponentialRampToValueAtTime(80, now + 0.45);
+
+    const gain = this.ctx.createGain();
+    gain.gain.setValueAtTime(0.5, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.45);
+
+    noise.connect(filter);
+    filter.connect(gain);
+    gain.connect(this.ctx.destination);
+    noise.start(now);
+  }
+
+  // Level 4: Tunnel rumble when entering the dark tunnel
+  playTunnelRumble() {
+    if (!this.enabled || !this.ctx) return;
+    const now = this.ctx.currentTime;
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(75, now);
+    osc.frequency.exponentialRampToValueAtTime(40, now + 1.8);
+    gain.gain.setValueAtTime(0.3, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 1.8);
+    osc.connect(gain);
+    gain.connect(this.ctx.destination);
+    osc.start(now);
+    osc.stop(now + 1.8);
+  }
+
+  // Level 4 Boss: Ghost King cavernous roar
+  playGhostRoar() {
+    if (!this.enabled || !this.ctx) return;
+    const now = this.ctx.currentTime;
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(140, now);
+    osc.frequency.linearRampToValueAtTime(60, now + 0.6);
+    osc.frequency.exponentialRampToValueAtTime(30, now + 1.2);
+    gain.gain.setValueAtTime(0.4, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 1.2);
+
+    const filter = this.ctx.createBiquadFilter();
+    filter.type = 'lowpass';
+    filter.frequency.setValueAtTime(450, now);
+    osc.connect(filter);
+    filter.connect(gain);
+    gain.connect(this.ctx.destination);
+    osc.start(now);
+    osc.stop(now + 1.2);
+  }
+
+  // Level 4 Boss: Cyclone Vacuum Suction whoosh sound
+  playVacuumSuction() {
+    if (!this.enabled || !this.ctx) return;
+    const now = this.ctx.currentTime;
+
+    const bufferSize = this.ctx.sampleRate * 0.4;
+    const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) {
+      data[i] = (Math.random() * 2 - 1) * 0.6;
+    }
+    const noise = this.ctx.createBufferSource();
+    noise.buffer = buffer;
+
+    const filter = this.ctx.createBiquadFilter();
+    filter.type = 'bandpass';
+    filter.frequency.setValueAtTime(250, now);
+    filter.frequency.exponentialRampToValueAtTime(1100, now + 0.35);
+    filter.Q.setValueAtTime(4.0, now);
+
+    const gain = this.ctx.createGain();
+    gain.gain.setValueAtTime(0.28, now);
+    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.4);
+
+    noise.connect(filter);
+    filter.connect(gain);
+    gain.connect(this.ctx.destination);
+    noise.start(now);
+  }
+
+  // Level 4 Enemy: Green Flame Skeleton club ground slam
+  playSkeletonSlam() {
+    if (!this.enabled || !this.ctx) return;
+    const now = this.ctx.currentTime;
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(220, now);
+    osc.frequency.exponentialRampToValueAtTime(38, now + 0.22);
+    gain.gain.setValueAtTime(0.45, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.22);
+    osc.connect(gain);
+    gain.connect(this.ctx.destination);
+    osc.start(now);
+    osc.stop(now + 0.22);
+  }
+
+  // Level 4 Boss Minions: Mini Ghost floating chirp
+  playMiniGhostChirp() {
+    if (!this.enabled || !this.ctx) return;
+    const now = this.ctx.currentTime;
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(650 + Math.random() * 200, now);
+    osc.frequency.exponentialRampToValueAtTime(950, now + 0.15);
+    gain.gain.setValueAtTime(0.12, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.16);
+    osc.connect(gain);
+    gain.connect(this.ctx.destination);
+    osc.start(now);
+    osc.stop(now + 0.16);
+  }
+
+  // Level 4 Finale: Giant Train Detonation & Destruction
+  playTrainDetonation() {
+    if (!this.enabled || !this.ctx) return;
+    const now = this.ctx.currentTime;
+
+    // Multi-layered rumble and explosive blast
+    for (let layer = 0; layer < 4; layer++) {
+      const delay = layer * 0.18;
+      const bufferSize = this.ctx.sampleRate * 0.9;
+      const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+      const data = buffer.getChannelData(0);
+      for (let i = 0; i < bufferSize; i++) {
+        data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (bufferSize * 0.25));
+      }
+      const noise = this.ctx.createBufferSource();
+      noise.buffer = buffer;
+
+      const filter = this.ctx.createBiquadFilter();
+      filter.type = 'lowpass';
+      filter.frequency.setValueAtTime(500 - layer * 70, now + delay);
+      filter.frequency.exponentialRampToValueAtTime(40, now + delay + 0.85);
+
+      const gain = this.ctx.createGain();
+      gain.gain.setValueAtTime(0.4 - layer * 0.05, now + delay);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + delay + 0.9);
+
+      noise.connect(filter);
+      filter.connect(gain);
+      gain.connect(this.ctx.destination);
+      noise.start(now + delay);
+    }
+  }
 }
 
 export const soundManager = new SoundManager();

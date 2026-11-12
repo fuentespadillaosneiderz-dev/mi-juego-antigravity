@@ -57,35 +57,54 @@ Un frenético juego arcade de disparos retro ambientado en un desierto nocturno 
 
 ---
 
+## 🚂 Nivel 3: El Techo del Convoy Fantasma
+- **Supervivencia de 4 Minutos:** Resistir la horda masiva de monstruos sobre el techo del tren en movimiento con reloj de calavera.
+- **Transición Cinematográfica:** Al superar los 4 minutos, cesan los monstruos y una explosión abre un agujero en el techo del vagón; el pistolero salta al interior mientras el convoy entra en un oscuro túnel.
+
+---
+
+## 👻 Nivel 4: El Interior del Vagón Maldito & El Rey Fantasma
+- **Entorno Interior (Imagen 1):** Vagón espectral con asientos de cuero y murciélagos, calabazas luminosas, maletas, candelabros parpadeantes y ventanas hacia la niebla verde.
+- **Regla de Monstruos:** Solo aparecen monstruos que caminan (sin enemigos voladores).
+- **Nuevo Monstruo — Esqueleto de Fuego Verde (Imagen 2):**
+  - Desprende llamas verdes y aura negra profunda.
+  - Porta escudo con murciélago heráldico y ataca con contundentes golpes de garrote con púas.
+- **Distancia:** Recorrer **2,000 metros** dentro del vagón para despertar al jefe final.
+- **Jefe Final — El Rey Fantasma (Imagen 3):**
+  - **Vida:** 20,000 HP (el doble que el Monstruo de 3 Ojos).
+  - Al aparecer, dejan de aparecer monstruos comunes.
+  - **Frente y Espalda:** Ataca alternando y teletransportándose a ambos lados del vagón.
+  - **Fase 1 (Invocación):** Abre sus fauces y libera 3 pequeños fantasmas que acechan al jugador.
+  - **Fase 2 (Succión Voraz):** Tras derrotar a los 3 pequeños fantasmas, abre su enorme boca para succionar e intentar devorarte.
+  - **Mecánicas de Succión:**
+    - ¡No se puede disparar durante la succión!
+    - Saltar succiona **2.5 veces más rápido** (el aire te arrastra con violencia).
+    - Debes correr en la dirección contraria según el lado donde se encuentre el Rey Fantasma.
+  - **Fase 3 (Exhausto y Teletransporte):** Queda jadeante y vulnerable (+50% daño recibido) antes de teletransportarse al flanco opuesto.
+- **Victoria y Cinematográfica Final (Imágenes 4 y 5):**
+  - Al ser derrotado, el Rey Fantasma se petrifica con grietas de piedra y ojos espirales.
+  - La pantalla se oscurece gradualmente y muestra la cinemática donde el pistolero salta del tren al desierto mientras el Tren Fantasma detona por completo en llamas verdes.
+
+---
+
 ## 🚀 Cómo Iniciar el Juego Localmente
 
 Tienes dos formas de ejecutar el juego:
 
-### Opción A: Entorno Virtual de Python (.venv) con Servidor y Base de Datos SQLite
-El entorno virtual ya está creado y configurado en `.venv`:
-
-1. **Doble clic en el archivo:**
-   - [iniciar_juego.bat](file:///c:/juego/iniciar_juego.bat)
-
-2. **O desde la terminal:**
-   ```powershell
-   # Activar el entorno virtual
-   .\.venv\Scripts\Activate.ps1
-   # o en CMD: .\.venv\Scripts\activate.bat
-
-   # Iniciar el servidor con API de puntuaciones
-   python server.py
-   ```
-   Abre en tu navegador:
-   👉 **http://localhost:5000/**
-
----
-
-### Opción B: Con Node / Vite
-Si prefieres el servidor Vite de desarrollo:
+### Opción A: Con Node / Vite (Servidor de Desarrollo)
 ```powershell
 npm run dev
 ```
 Abre en tu navegador:
 👉 **http://localhost:5173/**
+
+### Opción B: Entorno Virtual de Python (.venv) con Servidor y Base de Datos SQLite
+1. **Doble clic en el archivo:**
+   - [iniciar_juego.bat](file:///c:/juego/iniciar_juego.bat)
+2. **O desde la terminal:**
+   ```powershell
+   python server.py
+   ```
+   Abre en tu navegador:
+   👉 **http://localhost:5000/**
 

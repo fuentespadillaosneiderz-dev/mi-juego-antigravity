@@ -8,8 +8,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700;900&family=Press+Start+2P&family=Outfit:wght@400;600;800;900&display=swap" rel="stylesheet">
-  <script type="module" crossorigin src="/assets/index-DsxMPCPT.js"></script>
-  <link rel="stylesheet" crossorigin href="/assets/index-Cmp-Qh75.css">
+  <script type="module" crossorigin src="/assets/index-4rQWp3iP.js"></script>
+  <link rel="stylesheet" crossorigin href="/assets/index-CsMT8HXT.css">
 </head>
 <body>
   <!-- Contenedor Principal del Juego -->
@@ -31,6 +31,21 @@
             <span class="heart active">💀</span>
             <span class="heart active">💀</span>
           </div>
+          <!-- 4 Botones de Control (Auto-Disparo, Sonido, CRT, Pausa) ubicados bajo las calaveras -->
+          <div class="hud-buttons top-hud-buttons">
+            <button id="btn-autofire" class="hud-btn" title="Activar/desactivar disparo continuo">
+              🔫 Auto-Disparo: <span id="autofire-state">ON</span>
+            </button>
+            <button id="btn-sound" class="hud-btn" title="Silenciar / Activar Sonido">
+              🔊 Sonido: <span id="sound-state">ON</span>
+            </button>
+            <button id="btn-crt" class="hud-btn" title="Filtro Retro CRT">
+              📺 CRT: <span id="crt-state">ON</span>
+            </button>
+            <button id="btn-pause" class="hud-btn" title="Pausar Juego">
+              ⏸️ Pausa
+            </button>
+          </div>
         </div>
 
         <div class="stat-badge special-container">
@@ -42,16 +57,35 @@
         </div>
       </div>
 
-      <!-- Centro: Progreso al Jefe de 5000 pts -->
-      <div class="hud-group boss-tracker">
+      <!-- Centro: Barra de Proceso de Avance y Recorrido -->
+      <div class="hud-group boss-tracker path-progress-tracker" id="path-tracker-group">
         <div class="boss-goal-header">
-          <span class="flame-icon">🔥</span>
-          <span id="boss-goal-title">INVOCACIÓN DEL JEFE (5000 PTS)</span>
-          <span class="flame-icon">🔥</span>
+          <span class="flame-icon">👣</span>
+          <span id="boss-goal-title">RECORRIDO NIVEL 1 (1500 m)</span>
+          <span class="flame-icon">🌀</span>
         </div>
         <div class="boss-progress-bar-wrapper">
           <div id="boss-progress-fill" class="bar-fill boss-progress-fill" style="width: 0%;"></div>
-          <span id="boss-progress-text">0 / 5000 PTS</span>
+          <span id="boss-progress-text">0 m / 1500 m (0%)</span>
+        </div>
+      </div>
+
+      <!-- RELOJ CON DISEÑO DE CALAVERA (Nivel 3 - Supervivencia 4 min) -->
+      <div id="skull-clock-widget" class="skull-clock-widget hidden">
+        <div class="skull-clock-emblem">
+          <span class="skull-icon">💀</span>
+          <span class="skull-eye-glow left"></span>
+          <span class="skull-eye-glow right"></span>
+        </div>
+        <div class="skull-clock-info">
+          <span class="skull-clock-label">SUPERVIVENCIA EN EL TREN</span>
+          <div class="skull-clock-timer-row">
+            <span id="skull-clock-digits" class="skull-digits">04:00</span>
+            <span class="skull-target">/ 04:00</span>
+          </div>
+          <div class="skull-progress-bar">
+            <div id="skull-clock-fill" class="skull-bar-fill" style="width: 100%;"></div>
+          </div>
         </div>
       </div>
 
@@ -61,7 +95,7 @@
           <span class="hud-label">NIVEL</span>
           <span id="level-counter" class="digital-number small" style="color: #c084fc;">1</span>
         </div>
-        <div class="distance-box">
+        <div class="distance-box" id="distance-box-container">
           <span class="hud-label">DISTANCIA</span>
           <span id="distance-counter" class="digital-number small" style="color: #f59e0b;">0 m</span>
         </div>
@@ -79,7 +113,7 @@
       </div>
     </header>
 
-    <!-- Barra de Vida del Jefe (Aparece a 5000 pts) -->
+    <!-- Barra de Vida del Jefe (Nivel 2 - 1000 pts) -->
     <div id="boss-hud" class="boss-hud hidden">
       <div class="boss-title-row">
         <span class="boss-skull">👁️</span>
@@ -89,7 +123,7 @@
       <div class="boss-health-frame">
         <div id="boss-health-fill" class="boss-hp-fill" style="width: 100%;"></div>
         <div id="boss-health-ghost" class="boss-hp-ghost" style="width: 100%;"></div>
-        <span id="boss-health-text">3500 / 3500 HP</span>
+        <span id="boss-health-text">10000 / 10000 HP</span>
       </div>
     </div>
 
@@ -100,7 +134,7 @@
       <!-- Efecto CRT Scanlines y Viñeta -->
       <div id="crt-overlay" class="crt-overlay active"></div>
       
-      <!-- Cartel de Alerta de Jefe -->
+      <!-- Cartel de Alerta de Jefe (Nivel 2) -->
       <div id="boss-warning-banner" class="boss-warning-banner hidden">
         <div class="warning-tape">¡¡¡ ALERTA !!!</div>
         <h2 class="warning-title">¡¡¡EL MONSTRUO DE 3 OJOS HA SURGIDO DEL DESIERTO!!!</h2>
@@ -109,9 +143,30 @@
 
       <!-- Cartel de Desbloqueo de Nivel 2 -->
       <div id="level2-banner" class="level2-banner hidden">
-        <div class="level2-tape">✨ ¡¡¡ NIVEL 2 DESBLOQUEADO !!! ✨</div>
-        <h2 class="level2-title">¡LA NOCHE DE LA BRUJA Y LAS HORDAS DEL DESIERTO!</h2>
-        <p class="level2-sub">¡AVANZA HASTA EL FINAL DEL CAMINO Y CRUZA EL PORTAL DE SALIDA!</p>
+        <div class="level2-tape">✨ ¡¡¡ BIENVENIDO AL NIVEL 2 !!! ✨</div>
+        <h2 class="level2-title">¡EL REFUGIO DE LAS BRUJAS VOLADORAS!</h2>
+        <p class="level2-sub">¡OBTÉN 1000 PUNTOS PARA INVOCAR AL COLOSAL MONSTRUO DE 3 OJOS!</p>
+      </div>
+
+      <!-- Cartel de Alerta de Peligro: Nivel 3 Oleada de Monstruos -->
+      <div id="level3-danger-banner" class="level3-danger-banner hidden">
+        <div class="danger-tape">⚠️ ¡¡¡ ALERTA DE PELIGRO MÁXIMO !!! ⚠️</div>
+        <h2 class="danger-title">¡¡¡ OLEADA DE MONSTRUOS EN EL TECHO DEL TREN !!!</h2>
+        <p class="danger-sub">¡HORDAS ATACANDO POR TODAS PARTES! &mdash; ¡SOBREVIVE 4 MINUTOS!</p>
+      </div>
+
+      <!-- Cartel de Alerta de Nivel 4: Interior del Tren Fantasma -->
+      <div id="level4-danger-banner" class="level4-danger-banner hidden">
+        <div class="level4-tape">🚂💀 ¡¡¡ BIENVENIDO AL NIVEL 4: EL INTERIOR DEL TREN !!! 💀🚂</div>
+        <h2 class="level4-title">¡EL TÚNEL OSCURO &mdash; 2000 METROS HACIA EL REY FANTASMA!</h2>
+        <p class="level4-sub">¡SOLO MONSTRUOS TERRESTRES! &bull; ¡CUIDADO CON EL ESQUELETO DE FUEGO VERDE Y GARROTE!</p>
+      </div>
+
+      <!-- Cartel de Alerta de Jefe: El Rey Fantasma -->
+      <div id="ghost-king-warning-banner" class="ghost-king-warning-banner hidden">
+        <div class="ghost-king-tape">👑👻 ¡¡¡ ALERTA MÁXIMA &mdash; EL REY FANTASMA HA SURGIDO !!! 👻👑</div>
+        <h2 class="ghost-king-title">¡¡¡EL SOBERANO DEL TREN MALDITO TE DESAFÍA (20,000 HP)!!!</h2>
+        <p class="ghost-king-sub">¡ELIMINA SUS 3 FANTASMAS &bull; RESISTE LA GRAN SUCCIÓN VORAZ EN SENTIDO OPUESTO!</p>
       </div>
 
       <!-- Mensajes flotantes y notificaciones in-game -->
@@ -126,21 +181,6 @@
         <div class="legend-item"><kbd>▼</kbd> Bajar / Agacharse</div>
         <div class="legend-item"><kbd>ESPACIO</kbd> / <kbd>CLICK</kbd> Disparar Pistolas</div>
         <div class="legend-item special"><kbd>C</kbd> Furia Espectral</div>
-      </div>
-
-      <div class="hud-buttons">
-        <button id="btn-autofire" class="hud-btn" title="Activar/desactivar disparo continuo">
-          🔫 Auto-Disparo: <span id="autofire-state">ON</span>
-        </button>
-        <button id="btn-sound" class="hud-btn" title="Silenciar / Activar Sonido">
-          🔊 Sonido: <span id="sound-state">ON</span>
-        </button>
-        <button id="btn-crt" class="hud-btn" title="Filtro Retro CRT">
-          📺 CRT: <span id="crt-state">ON</span>
-        </button>
-        <button id="btn-pause" class="hud-btn" title="Pausar Juego">
-          ⏸️ Pausa
-        </button>
       </div>
     </footer>
 
@@ -161,14 +201,49 @@
       </div>
     </div>
 
-    <!-- Pantalla de Inicio / Menú -->
-    <div id="start-screen" class="overlay-modal active">
+    <!-- ===================================================================
+         PANTALLA 1: THE NIGHT HUNTER (PANTALLA PRINCIPAL / TÍTULO)
+         =================================================================== -->
+    <div id="screen-title" class="screen-modal active">
+      <div class="screen-stage-wrapper">
+        <!-- Imagen Base 1: The Night Hunter -->
+        <img class="screen-bg-img" src="/assets/media_1791976681572-BLzg-uVc.jpg" alt="The Night Hunter">
+        
+        <!-- Canvas de Efectos Visuales: Fuego Verde en movimiento y Ojos Parpadeantes Brillantes -->
+        <canvas id="title-fx-canvas" class="screen-fx-canvas" width="1024" height="628"></canvas>
+
+        <!-- Botón Interactivo PLAY GAME posicionado sobre el botón de la imagen -->
+        <button id="btn-title-play" class="btn-play-game-retro" aria-label="Play Game">
+          <span class="btn-text">PLAY GAME</span>
+          <span class="btn-glow-pulse"></span>
+        </button>
+
+        <!-- Botón 2 de Comando: Elegir Nivel antes de empezar el juego -->
+        <button id="btn-title-command" class="btn-command-retro" aria-label="Comando de Nivel">
+          <span class="btn-cmd-icon">⌨️</span>
+          <span class="btn-cmd-text">COMANDO: ELEGIR NIVEL</span>
+        </button>
+
+        <!-- Botón para Reanudar Partida Guardada (si existe checkpoint) -->
+        <button id="btn-title-resume" class="btn-resume-checkpoint hidden" title="Continuar partida guardada">
+          💾 CONTINUAR (NIVEL <span id="title-resume-level">1</span>)
+        </button>
+
+        <!-- Botón auxiliar para ver controles/guía -->
+        <button id="btn-title-controls" class="btn-retro-corner" title="Ver Controles y Misión">
+          🎮 CONTROLES
+        </button>
+      </div>
+    </div>
+
+    <!-- Modal Auxiliar de Controles y Misión (Accesible desde Pantalla 1) -->
+    <div id="title-controls-modal" class="overlay-modal hidden">
       <div class="modal-card">
         <div class="modal-glow-border"></div>
         <div class="modal-header">
           <div class="skull-emblem">💀🔥</div>
-          <h1 class="main-title">EL VENGADOR DEL DESIERTO</h1>
-          <h3 class="sub-title">LA FURIA DEL JEFE DE 3 OJOS</h3>
+          <h2 class="main-title">THE NIGHT HUNTER</h2>
+          <h3 class="sub-title">MANUAL DEL PISTOLERO ESPECTRAL</h3>
         </div>
 
         <div class="modal-body">
@@ -176,7 +251,7 @@
             <p>Bajo la luna carmesí del desierto maldito, el Pistolero Espectral empuña sus revólveres gemelos de fuego esmeralda.</p>
             <p>Hordas de <strong>monstruos terrestres y voladores</strong> lanzan proyectiles mágicos y espinas. ¡Destrúyelos a todos!</p>
             <div class="mission-highlight">
-              🎯 <strong>MISIÓN PRINCIPAL:</strong> Alcanza <strong>5,000 PUNTOS</strong> para invocar y derrotar al legendario <strong>MONSTRUO DE 3 OJOS</strong>.
+              🎯 <strong>MISIÓN:</strong> Recorre <strong>1,500 METROS</strong> en el Nivel 1 para encontrar el Portal. A los <strong>1,000 PUNTOS</strong> despertarán los <strong>Zombies</strong> de la imagen con ropa rasgada. En el Nivel 2 (de <strong>2,000 METROS</strong>), a los 1,000 puntos atacarán las <strong>Brujas Voladoras</strong> y al alcanzar los <strong>2,000 METROS</strong> surgirá el colosal <strong>MONSTRUO DE 3 OJOS</strong> (8,000 HP). ¡Cada 10 metros recorridos otorga +10 puntos!
             </div>
           </div>
 
@@ -184,69 +259,304 @@
             <div class="inst-col">
               <h4>🎮 CONTROLES:</h4>
               <ul>
+                <li><kbd>Ratón / Mouse</kbd>: <strong>Apuntar en tiempo real</strong> en 360°</li>
+                <li><kbd>Click Izq</kbd> / <kbd>Espacio</kbd>: Disparar revólveres hacia el cursor</li>
                 <li><kbd>Flecha Arriba</kbd> o <kbd>W</kbd>: Saltar (¡Doble Salto disponible!)</li>
                 <li><kbd>Flechas Izq / Der</kbd> o <kbd>A</kbd> / <kbd>D</kbd>: Avanzar y Retroceder</li>
                 <li><kbd>Flecha Abajo</kbd> o <kbd>S</kbd>: Agacharse / Bajar rápido</li>
-                <li><kbd>Espacio</kbd> o <kbd>Click Izq</kbd>: Disparar revólveres</li>
                 <li><kbd>C</kbd> o <kbd>Click Der</kbd>: Super Furia Espectral</li>
               </ul>
             </div>
             <div class="inst-col">
-              <h4>👾 ENEMIGOS Y ATAQUES:</h4>
+              <h4>👾 ENEMIGOS Y NIVELES:</h4>
               <ul>
-                <li>🌵 <strong>Cactus Maldito:</strong> Ráfagas de espinas en arco.</li>
-                <li>🦂 <strong>Escorpión del Desierto:</strong> Orbes de veneno corrosivo.</li>
-                <li>🐺 <strong>Lobo Espectral:</strong> Embestidas fantasmales veloces.</li>
-                <li>🦇 <strong>Monstruos Voladores:</strong> Bolas de plasma violeta teledirigidas.</li>
-                <li>👁️ <strong>Jefe de 3 Ojos (5000 pts):</strong> Rayos láser triples y terremoto de arena.</li>
+                <li>🌀 <strong>Nivel 1 (1500 m):</strong> Cáctus, escorpiones, lobos y <strong>Zombies (a los 1000 pts)</strong>.</li>
+                <li>🧙‍♀️ <strong>Nivel 2 (2000 m):</strong> Brujas en escoba (1000 pts) y el <strong>Monstruo de 3 Ojos (10,000 HP)</strong>.</li>
+                <li>🚂 <strong>Nivel 3 (Techo del Tren):</strong> Supervivencia extrema de 4 minutos guiada por el Reloj de Calavera.</li>
+                <li>💀 <strong>Nivel 4 (Interior del Tren - 2000 m):</strong> Solo monstruos que caminan y el <strong>Esqueleto de Fuego Verde y Garrote</strong>. Jefe final: <strong>El Rey Fantasma (20,000 HP)</strong> con invocación de 3 fantasmas y Gran Succión Voraz.</li>
               </ul>
             </div>
           </div>
         </div>
 
         <div class="modal-footer">
-          <button id="btn-start-game" class="btn-play-pulse">
-            <span class="btn-icon">⚡</span> ¡INICIAR PARTIDA! <span class="btn-icon">⚡</span>
+          <button id="btn-close-controls" class="btn-play-pulse">
+            ✓ ENTENDIDO (CERRAR)
           </button>
         </div>
       </div>
     </div>
 
-    <!-- Pantalla de Game Over -->
-    <div id="game-over-screen" class="overlay-modal hidden">
-      <div class="modal-card defeat">
-        <div class="skull-defeat">💀⚰️</div>
-        <h2 class="defeat-title">EL DESIERTO RECLAMÓ TU ALMA</h2>
-        <p class="defeat-text">Tus huesos descansan bajo las arenas malditas...</p>
-        
-        <div class="stats-summary">
-          <div class="stat-item">
-            <span>PUNTUACIÓN FINAL</span>
-            <strong id="final-score">0</strong>
-          </div>
-          <div class="stat-item">
-            <span>MONSTRUOS VENCIDOS</span>
-            <strong id="final-kills">0</strong>
-          </div>
-          <div class="stat-item">
-            <span>MAYOR COMBO</span>
-            <strong id="final-max-combo">0</strong>
-          </div>
+    <!-- Modal de Consola de Comando de Nivel (Accesible desde el Botón de Comando en Título) -->
+    <div id="title-command-modal" class="overlay-modal hidden">
+      <div class="modal-card command-modal-card">
+        <div class="modal-glow-border"></div>
+        <div class="modal-header">
+          <div class="skull-emblem">⚙️⌨️</div>
+          <h2 class="main-title">CONSOLA DE COMANDOS</h2>
+          <h3 class="sub-title">SELECCIÓN DIRECTA DE NIVEL</h3>
         </div>
 
-        <button id="btn-restart" class="btn-play-pulse">
-          🔄 REINTENTAR LA VENGANZA
-        </button>
+        <div class="modal-body">
+          <p class="command-intro">
+            Escribe el nivel al que deseas ir (ejemplo: <strong>"4 nivel"</strong>, <strong>"123"</strong>, <strong>"nivel 4"</strong>, <strong>"3"</strong>, <strong>"2"</strong> o <strong>"1"</strong>):
+          </p>
+
+          <form id="command-level-form" class="command-form" onsubmit="return false;">
+            <div class="command-input-wrapper">
+              <span class="command-prompt-symbol">&gt;</span>
+              <input type="text" id="command-level-input" class="command-input" placeholder="Escribe aquí: 4 nivel, 123, 3, 2, 1..." autocomplete="off" spellcheck="false">
+              <button type="submit" id="btn-command-submit" class="btn-command-submit">
+                ▶ ENTRAR
+              </button>
+            </div>
+            <div id="command-feedback" class="command-feedback">
+              💡 Escribe "4 nivel" para ir directo al vagón y jefe fantasma
+            </div>
+          </form>
+
+          <div class="command-quick-buttons">
+            <span class="quick-title">⚡ ACCESO RÁPIDO CON 1 CLIC:</span>
+            <div class="quick-grid">
+              <button type="button" class="btn-quick-level" data-level="1">🌵 NIVEL 1 (Desierto)</button>
+              <button type="button" class="btn-quick-level" data-level="2">👁️ NIVEL 2 (Brujas &amp; Jefe 3 Ojos)</button>
+              <button type="button" class="btn-quick-level" data-level="3">🚂 NIVEL 3 (Techo del Tren Fantasma)</button>
+              <button type="button" class="btn-quick-level level-4-highlight" data-level="4">👑 NIVEL 4 (Interior &amp; Rey Fantasma)</button>
+              <button type="button" class="btn-quick-level boss-highlight" data-level="4-boss">💀 JEFE FANTASMA DIRECTO</button>
+            </div>
+          </div>
+
+          <div class="modal-actions-row" style="margin-top: 18px;">
+            <button type="button" id="btn-close-command" class="btn-secondary">✖ CERRAR</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===================================================================
+         TRANSICIÓN A NIVEL 2: PANTALLA OFICIAL DE LEVEL 2
+         Aparece al completar el Nivel 1 cruzando el Portal
+         =================================================================== -->
+    <div id="screen-second" class="screen-modal hidden">
+      <div class="screen-stage-wrapper">
+        <!-- Imagen Oficial: LEVEL 2 - PRESS BUTTON 1 TO CONFIRM -->
+        <img class="screen-bg-img" src="/assets/media_1791978708343-CPHSOX1I.png" alt="Level 2 Transition Screen">
+        
+        <!-- Canvas de Efectos Visuales: Latido, Fuego verde y Luz de linterna -->
+        <canvas id="second-fx-canvas" class="screen-fx-canvas" width="1024" height="628"></canvas>
+
+        <!-- Tarjeta de Confirmación de Nivel 2 -->
+        <div class="second-briefing-card level2-transition-card">
+          <div class="briefing-header">
+            <span class="briefing-badge green">✨ ¡NIVEL 1 SUPERADO! ✨</span>
+            <span class="briefing-title">SIGUIENTE ETAPA: NIVEL 2</span>
+            <span class="briefing-badge">👁️ JEFE 8,000 HP</span>
+          </div>
+          
+          <p class="briefing-desc">
+            ¡Has completado los 1,500 metros del Nivel 1! En el <strong>NIVEL 2 (2,000 METROS)</strong> a los 1,000 puntos atacarán las <strong>Brujas Voladoras en Escoba</strong> y al completar <strong>2,000 METROS</strong> de marcha surgirá el colosal <strong>Monstruo de 3 Ojos</strong> con 8,000 HP, bolas de energía y rayos láser triples.
+          </p>
+
+          <div class="briefing-actions">
+            <button id="btn-start-action" class="btn-briefing-primary btn-confirm-level2">
+              <span class="btn-key-icon">🔘 [BUTTON 1]</span>
+              <span>¡CONFIRMAR Y COMENZAR NIVEL 2!</span>
+            </button>
+          </div>
+          <p class="confirm-hint">Presiona <kbd>1</kbd>, <kbd>ESPACIO</kbd> o <kbd>ENTER</kbd> para confirmar</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===================================================================
+         CINEMÁTICA: ABORDANDO EL TREN FANTASMA
+         Aparece al derrotar al Monstruo de 3 Ojos
+         =================================================================== -->
+    <div id="screen-boarding-cinematic" class="screen-modal hidden">
+      <div class="screen-stage-wrapper cinematic-stage-wrapper">
+        <img class="screen-bg-img cinematic-bg-img" src="/assets/ghost_train_boarding-IaNBfVCI.jpg" alt="Abordando el Tren Fantasma">
+        <canvas id="cinematic-fx-canvas" class="screen-fx-canvas" width="1024" height="628"></canvas>
+        
+        <div class="cinematic-dialogue-card">
+          <div class="cinematic-badge">🎬 CINEMÁTICA &mdash; EL CONVOY MALDITO</div>
+          <h2 class="cinematic-title">¡EL MONSTRUO DE 3 OJOS HA SIDO DESTRUIDO!</h2>
+          <p class="cinematic-text">
+            El colosal destructor del desierto se disuelve en fuego y arena. El Pistolero Espectral guarda sus revólveres y camina firmemente hacia las vías envueltas en ectoplasma verde... ¡El legendario <strong>Tren Fantasma</strong> lo espera para ascender hacia el próximo desafío!
+          </p>
+          <div class="cinematic-footer">
+            <button id="btn-skip-boarding" class="btn-briefing-primary btn-skip-cinematic">
+              <span>▶️ SUBIR AL TREN Y CONTINUAR</span>
+            </button>
+            <span class="cinematic-timer-hint">Abordando automáticamente...</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===================================================================
+         PANTALLA OFICIAL DE LEVEL 3: EL TECHO DEL TREN FANTASMA
+         Aparece tras la cinemática de abordaje
+         =================================================================== -->
+    <div id="screen-level3" class="screen-modal hidden">
+      <div class="screen-stage-wrapper">
+        <img class="screen-bg-img" src="/assets/level3_screen-CmOtmY3U.jpg" alt="Level 3 Transition Screen">
+        <canvas id="level3-fx-canvas" class="screen-fx-canvas" width="1024" height="628"></canvas>
+
+        <div class="second-briefing-card level3-transition-card">
+          <div class="briefing-header">
+            <span class="briefing-badge green">✨ ¡NIVEL 2 SUPERADO! ✨</span>
+            <span class="briefing-title">ETAPA 3: EL TECHO DEL TREN FANTASMA</span>
+            <span class="briefing-badge skull-badge">💀 4 MIN DE SUPERVIVENCIA</span>
+          </div>
+          
+          <p class="briefing-desc">
+            ¡Has abordado el convoy espectral! Ahora aparecerás en el <strong>TECHO DEL TREN FANTASMA</strong> a toda velocidad. Una <strong>OLEADA MASIVA DE MONSTRUOS</strong> atacará desde el cielo y los vagones. El Monstruo de 3 Ojos ha caído y no volverá (solo existe en el Nivel 2). ¡Tu objetivo es <strong>SOBREVIVIR 4 MINUTOS</strong> guiado por el Reloj de Calavera!
+          </p>
+
+          <div class="briefing-actions">
+            <button id="btn-confirm-level3" class="btn-briefing-primary btn-confirm-level3">
+              <span class="btn-key-icon">🔘 [BUTTON 1]</span>
+              <span>¡CONFIRMAR Y SUBIR AL TECHO!</span>
+            </button>
+          </div>
+          <p class="confirm-hint">Presiona <kbd>1</kbd>, <kbd>ESPACIO</kbd> o <kbd>ENTER</kbd> para confirmar</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===================================================================
+         PANTALLA OFICIAL DE LEVEL 4: LEVEL 4 - PRESS BUTTON 1 TO CONFIRM
+         Aparece tras la cinemática del Nivel 3 (explosión en techo y salto al agujero)
+         =================================================================== -->
+    <div id="screen-level4" class="screen-modal hidden">
+      <div class="screen-stage-wrapper">
+        <img class="screen-bg-img" src="/assets/level4_title_screen-d6ylOcMI.jpg" alt="Level 4 Screen - Press Button 1 to Confirm">
+        <canvas id="level4-fx-canvas" class="screen-fx-canvas" width="1024" height="628"></canvas>
+
+        <div class="second-briefing-card level4-transition-card">
+          <div class="briefing-header">
+            <span class="briefing-badge green">✨ ¡NIVEL 3 SUPERADO! ✨</span>
+            <span class="briefing-title">ETAPA 4: EL INTERIOR DEL TREN FANTASMA</span>
+            <span class="briefing-badge skull-badge">👑 REY FANTASMA 20,000 HP</span>
+          </div>
+          
+          <p class="briefing-desc">
+            ¡Una pequeña explosión abrió una brecha en el techo del tren! Saltaste dentro mientras el convoy se adentra a toda velocidad en un <strong>TÚNEL OSCURO</strong>. Aquí <strong>SOLO APARECERÁN MONSTRUOS TERRESTRES QUE CAMINAN</strong> (no hay monstruos voladores), liderados por el nuevo <strong>ESQUELETO DE FUEGO VERDE Y AURA NEGRA</strong> que golpea con su pesado garrote.
+          </p>
+          <p class="briefing-desc" style="margin-top: 6px; color: #a7f3d0;">
+            🎯 <strong>MISIÓN:</strong> Recorre <strong>2,000 METROS</strong> dentro del tren para llegar al <strong>REY FANTASMA</strong> (con el doble de vida que el monstruo de 3 ojos: 20,000 HP). Atacará de frente y por detrás, soltará 3 fantasmas pequeños y luego abrirá su enorme boca para <strong>SUCCIONARTE</strong>. ¡No saltes durante la succión y corre en sentido opuesto!
+          </p>
+
+          <div class="briefing-actions">
+            <button id="btn-confirm-level4" class="btn-briefing-primary btn-confirm-level4">
+              <span class="btn-key-icon">🔘 [BUTTON 1]</span>
+              <span>¡CONFIRMAR Y COMENZAR NIVEL 4!</span>
+            </button>
+          </div>
+          <p class="confirm-hint">Presiona <kbd>1</kbd>, <kbd>ESPACIO</kbd> o <kbd>ENTER</kbd> para confirmar</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===================================================================
+         CINEMÁTICA FINAL: DERROTA DEL REY FANTASMA Y EXPLOSIÓN DEL TREN
+         (Imágenes 4 y 5: Rey Fantasma derrotado de piedra / Salto y explosión exterior)
+         =================================================================== -->
+    <div id="screen-train-explosion" class="screen-modal hidden">
+      <div class="screen-stage-wrapper cinematic-stage-wrapper explosion-stage-wrapper">
+        <!-- Fase A: Boss Derrotado (Imagen 4) y Fase B: Tren Exterior Explotando (Imagen 5) -->
+        <img id="explosion-cinematic-img" class="screen-bg-img cinematic-bg-img" src="/assets/level4_ghost_train_exterior-Da70qZ6d.png" alt="Explosión del Tren Fantasma">
+        <canvas id="explosion-fx-canvas" class="screen-fx-canvas" width="1024" height="628"></canvas>
+        
+        <div class="cinematic-dialogue-card explosion-dialogue-card">
+          <div class="cinematic-badge gold">🏆 CINEMÁTICA FINAL &mdash; EL ESCAPE DEFINITIVO 💥</div>
+          <h2 class="cinematic-title" id="explosion-title-text">¡¡¡EL REY FANTASMA HA SIDO DERROTADO!!!</h2>
+          <p class="cinematic-text" id="explosion-desc-text">
+            El soberano espectral se petrifica y agrieta en cenizas. La locomotora calavera entra en combustión sobre las vías y el Pistolero Espectral salta audazmente por la ventana hacia el desierto justo antes de que el Tren Fantasma explote en una colosal llamarada verde esmeralda.
+          </p>
+          <div class="cinematic-footer">
+            <button id="btn-finish-adventure" class="btn-briefing-primary btn-finish-adventure">
+              <span>✨ CELEBRAR VICTORIA DEFINITIVA ✨</span>
+            </button>
+            <span class="cinematic-timer-hint">Detonando convoy maldito...</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===================================================================
+         PANTALLA OFICIAL DE GAME OVER (IMAGEN 1 CON 3 BOTONES)
+         Muestra la imagen del pistolero caído, calavera humeante y farol roto
+         Botones: CONTINUAR (reaparece en el mismo nivel)
+                  GUARDAR Y SALIR (guarda y manda al título)
+                  VOLVER A EMPEZAR (desde el principio)
+         =================================================================== -->
+    <div id="game-over-screen" class="screen-modal hidden">
+      <div class="screen-stage-wrapper gameover-stage-wrapper">
+        <img class="screen-bg-img" src="/assets/game_over_screen--JdjW3xH.jpg" alt="Game Over - El Pistolero Caído">
+        <canvas id="gameover-fx-canvas" class="screen-fx-canvas" width="1024" height="628"></canvas>
+
+        <!-- Panel de Control y Botones sobre la imagen de Game Over -->
+        <div class="gameover-control-panel">
+          <div class="gameover-stats-ribbon">
+            <div class="go-stat-pill">
+              <span class="go-label">NIVEL ACTUAL</span>
+              <strong id="gameover-level-num" class="go-val highlight">1</strong>
+            </div>
+            <div class="go-stat-pill">
+              <span class="go-label">PUNTOS</span>
+              <strong id="final-score" class="go-val">0</strong>
+            </div>
+            <div class="go-stat-pill">
+              <span class="go-label">MONSTRUOS</span>
+              <strong id="final-kills" class="go-val">0</strong>
+            </div>
+            <div class="go-stat-pill">
+              <span class="go-label">MÁX COMBO</span>
+              <strong id="final-max-combo" class="go-val">x0</strong>
+            </div>
+          </div>
+
+          <!-- LOS 3 BOTONES SOLICITADOS -->
+          <div class="gameover-actions-deck">
+            <!-- BOTÓN 1: CONTINUAR (Reaparece en el mismo nivel donde murió) -->
+            <button id="btn-gameover-continue" class="btn-gameover-action btn-go-continue" title="Continuar en este mismo nivel">
+              <span class="btn-go-icon">▶️</span>
+              <div class="btn-go-labels">
+                <span class="btn-go-primary">CONTINUAR</span>
+                <span class="btn-go-secondary">REAPARECER EN NIVEL <span id="gameover-continue-lvl-text">1</span></span>
+              </div>
+            </button>
+
+            <!-- BOTÓN 2: GUARDAR Y SALIR (Guarda y va al título del juego) -->
+            <button id="btn-gameover-save" class="btn-gameover-action btn-go-save" title="Guardar punto de control y salir al menú">
+              <span class="btn-go-icon">💾</span>
+              <div class="btn-go-labels">
+                <span class="btn-go-primary">GUARDAR Y SALIR</span>
+                <span class="btn-go-secondary">GUARDAR CHECKPOINT E IR AL TÍTULO</span>
+              </div>
+            </button>
+
+            <!-- BOTÓN 3: VOLVER A EMPEZAR (Reinicia desde el principio - Nivel 1) -->
+            <button id="btn-gameover-restart" class="btn-gameover-action btn-go-restart" title="Comenzar una nueva partida desde el Nivel 1">
+              <span class="btn-go-icon">🔄</span>
+              <div class="btn-go-labels">
+                <span class="btn-go-primary">VOLVER A EMPEZAR</span>
+                <span class="btn-go-secondary">DESDE EL PRINCIPIO (NIVEL 1)</span>
+              </div>
+            </button>
+          </div>
+        </div>
       </div>
     </div>
 
     <!-- Pantalla de Victoria Definitiva (Cruzando el Portal) -->
     <div id="victory-screen" class="overlay-modal hidden">
       <div class="modal-card victory">
-        <div class="trophy-victory">🏆🌀✨</div>
+        <div class="trophy-victory">🏆👁️✨</div>
         <h2 class="victory-title">¡¡¡VICTORIA DEFINITIVA!!!</h2>
-        <h3 class="victory-sub">¡HAS CRUZADO EL PORTAL Y ESCAPADO DEL DESIERTO!</h3>
-        <p class="victory-text">Derrotaste al colosal Monstruo de 3 Ojos en el Nivel 1 y sobreviviste a las Brujas Voladoras hasta alcanzar el final del camino y cruzar el portal de escape.</p>
+        <h3 class="victory-sub">¡EL MONSTRUO DE 3 OJOS HA SIDO DERROTADO!</h3>
+        <p class="victory-text">Cruzaste el portal hacia el Nivel 2, venciste a las brujas voladoras en escoba y destruiste al colosal Monstruo de 3 Ojos superando sus rayos láser y bolas de energía destructivas.</p>
         
         <div class="stats-summary victory-stats">
           <div class="stat-item">
@@ -258,14 +568,16 @@
             <strong style="color: #4ade80;">NIVEL 1 & NIVEL 2</strong>
           </div>
           <div class="stat-item">
-            <span>PORTAL CRUZADO</span>
-            <strong style="color: #38bdf8;">ÉXITO TOTAL 🌀</strong>
+            <span>MONSTRUO 3 OJOS</span>
+            <strong style="color: #38bdf8;">DESTRUIDO 👁️💥</strong>
           </div>
         </div>
 
-        <button id="btn-victory-restart" class="btn-play-pulse">
-          🔥 JUGAR DE NUEVO (NUEVA AVENTURA)
-        </button>
+        <div class="modal-actions-row">
+          <button id="btn-victory-restart" class="btn-play-pulse">
+            🔥 JUGAR DE NUEVO (NUEVA AVENTURA)
+          </button>
+        </div>
       </div>
     </div>
 
@@ -276,7 +588,8 @@
         <p>Tómate un respiro antes de continuar la cacería.</p>
         <div class="pause-actions">
           <button id="btn-resume" class="btn-play-pulse">▶️ CONTINUAR</button>
-          <button id="btn-quit" class="btn-secondary">REINICIAR</button>
+          <button id="btn-quit" class="btn-secondary">🔄 REINICIAR</button>
+          <button id="btn-back-to-menu-pause" class="btn-secondary">🏠 MENÚ PRINCIPAL</button>
         </div>
       </div>
     </div>

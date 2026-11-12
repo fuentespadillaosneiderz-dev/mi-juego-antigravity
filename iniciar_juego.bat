@@ -14,3 +14,5 @@ if not exist ".venv\Scripts\python.exe" (
 start http://localhost:5000
 .venv\Scripts\python.exe server.py
 pause
+
+
