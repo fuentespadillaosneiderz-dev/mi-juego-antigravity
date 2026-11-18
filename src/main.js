@@ -47,6 +47,7 @@ class DesertGame {
     this.mouse = { x: 0, y: 0, isDown: false, inside: false };
     this.autoFire = true;
     this.autoFireTimer = 0;
+    this.aimJoystick = { active: false, angle: 0, magnitude: 0 };
 
     // Level progression & Level 2 features
     this.level = 1;
@@ -295,39 +296,244 @@ class DesertGame {
   }
 
   initTouchControls() {
-    const bindTouch = (id, onDown, onUp) => {
+    // --- JOYSTICK ANALÓGICO ---
+    const joystickZone = document.getElementById('joystick-zone');
+    const joystickBase = document.getElementById('joystick-base');
+    const joystickStick = document.getElementById('joystick-stick');
+    
+    if (joystickZone && joystickBase && joystickStick) {
+      let joystickActive = false;
+      let joystickTouchId = null;
+      const DEAD_ZONE = 0.2; // Zona muerta del 20%
+      const MAX_DIST = 35;   // Máxima distancia del stick desde el centro
+
+      const handleJoystickMove = (touchX, touchY) => {
+        const rect = joystickBase.getBoundingClientRect();
+        const centerX = rect.left + rect.width / 2;
+        const centerY = rect.top + rect.height / 2;
+        
+        let dx = touchX - centerX;
+        let dy = touchY - centerY;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        
+        // Limitar al radio máximo
+        if (dist > MAX_DIST) {
+          dx = (dx / dist) * MAX_DIST;
+          dy = (dy / dist) * MAX_DIST;
+        }
+        
+        // Mover el stick visualmente
+        joystickStick.style.transform = `translate(${dx}px, ${dy}px)`;
+        
+        // Normalizar (-1 a 1)
+        const normX = dx / MAX_DIST;
+        const normY = dy / MAX_DIST;
+        
+        // Aplicar zona muerta y mapear a teclas
+        this.keys['ArrowLeft'] = normX < -DEAD_ZONE;
+        this.keys['ArrowRight'] = normX > DEAD_ZONE;
+        this.keys['ArrowDown'] = normY > DEAD_ZONE;
+        
+        // Saltar con joystick arriba
+        if (normY < -DEAD_ZONE && !this._joystickJumpTriggered) {
+          this._joystickJumpTriggered = true;
+          if (this.state === 'playing') this.player.jump(soundManager, this.particles);
+        }
+        if (normY >= -DEAD_ZONE) {
+          this._joystickJumpTriggered = false;
+        }
+      };
+
+      const resetJoystick = () => {
+        joystickActive = false;
+        joystickTouchId = null;
+        joystickStick.style.transform = 'translate(0px, 0px)';
+        joystickStick.classList.remove('active');
+        this.keys['ArrowLeft'] = false;
+        this.keys['ArrowRight'] = false;
+        this.keys['ArrowDown'] = false;
+        this._joystickJumpTriggered = false;
+      };
+
+      joystickZone.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        soundManager.init();
+        const touch = e.changedTouches[0];
+        joystickActive = true;
+        joystickTouchId = touch.identifier;
+        joystickStick.classList.add('active');
+        handleJoystickMove(touch.clientX, touch.clientY);
+      }, { passive: false });
+
+      joystickZone.addEventListener('touchmove', (e) => {
+        e.preventDefault();
+        if (!joystickActive) return;
+        for (let i = 0; i < e.changedTouches.length; i++) {
+          if (e.changedTouches[i].identifier === joystickTouchId) {
+            handleJoystickMove(e.changedTouches[i].clientX, e.changedTouches[i].clientY);
+            break;
+          }
+        }
+      }, { passive: false });
+
+      joystickZone.addEventListener('touchend', (e) => {
+        e.preventDefault();
+        for (let i = 0; i < e.changedTouches.length; i++) {
+          if (e.changedTouches[i].identifier === joystickTouchId) {
+            resetJoystick();
+            break;
+          }
+        }
+      }, { passive: false });
+
+      joystickZone.addEventListener('touchcancel', (e) => {
+        e.preventDefault();
+        resetJoystick();
+      }, { passive: false });
+    }
+
+    // --- BOTONES DE ACCIÓN (Derecha) ---
+    const bindBtn = (id, onDown, onUp) => {
       const el = document.getElementById(id);
       if (!el) return;
       el.addEventListener('touchstart', (e) => {
         e.preventDefault();
+        e.stopPropagation();
         soundManager.init();
         if (onDown) onDown();
       }, { passive: false });
 
       el.addEventListener('touchend', (e) => {
         e.preventDefault();
+        e.stopPropagation();
+        if (onUp) onUp();
+      }, { passive: false });
+
+      el.addEventListener('touchcancel', (e) => {
+        e.preventDefault();
         if (onUp) onUp();
       }, { passive: false });
     };
 
-    bindTouch('touch-left', () => this.keys['ArrowLeft'] = true, () => this.keys['ArrowLeft'] = false);
-    bindTouch('touch-right', () => this.keys['ArrowRight'] = true, () => this.keys['ArrowRight'] = false);
-    bindTouch('touch-down', () => this.keys['ArrowDown'] = true, () => this.keys['ArrowDown'] = false);
-    bindTouch('touch-up', () => {
-      if (this.state === 'playing') this.player.jump(soundManager, this.particles);
-    }, null);
-
-    bindTouch('touch-jump', () => {
-      if (this.state === 'playing') this.player.jump(soundManager, this.particles);
-    }, null);
-
-    bindTouch('touch-shoot', () => {
+    // Botón A (arriba) = Disparar
+    bindBtn('touch-shoot', () => {
       if (this.state === 'playing') this.player.shoot(soundManager, this.projectiles, this.particles);
     }, null);
 
-    bindTouch('touch-special', () => {
+    // Botón A (derecha) = Saltar
+    bindBtn('touch-jump', () => {
+      if (this.state === 'playing') this.player.jump(soundManager, this.particles);
+    }, null);
+
+    // Botón X (izquierda) = Furia Espectral
+    bindBtn('touch-special', () => {
       if (this.state === 'playing') this.player.triggerFury(soundManager, this.projectiles, this.particles, this.floatingTexts);
     }, null);
+
+    // Botón B (abajo) = Agacharse (mantener presionado)
+    bindBtn('touch-down', 
+      () => { this.keys['ArrowDown'] = true; },
+      () => { this.keys['ArrowDown'] = false; }
+    );
+
+    // --- JOYSTICK DE PUNTERÍA (Derecho) ---
+    const aimZone = document.getElementById('aim-joystick-zone');
+    const aimBase = document.getElementById('aim-joystick-base');
+    const aimStick = document.getElementById('aim-joystick-stick');
+
+    // Estado del joystick de puntería
+    this.aimJoystick = { active: false, angle: 0, magnitude: 0 };
+
+    if (aimZone && aimBase && aimStick) {
+      let aimTouchId = null;
+      const AIM_MAX_DIST = 30;
+      const AIM_DEAD_ZONE = 0.15;
+
+      const handleAimMove = (touchX, touchY) => {
+        const rect = aimBase.getBoundingClientRect();
+        const centerX = rect.left + rect.width / 2;
+        const centerY = rect.top + rect.height / 2;
+
+        let dx = touchX - centerX;
+        let dy = touchY - centerY;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+
+        // Limitar al radio máximo
+        if (dist > AIM_MAX_DIST) {
+          dx = (dx / dist) * AIM_MAX_DIST;
+          dy = (dy / dist) * AIM_MAX_DIST;
+        }
+
+        // Mover el stick visualmente
+        aimStick.style.transform = `translate(${dx}px, ${dy}px)`;
+
+        // Normalizar magnitud (0 a 1)
+        const normMag = Math.min(dist / AIM_MAX_DIST, 1.0);
+
+        if (normMag > AIM_DEAD_ZONE) {
+          this.aimJoystick.active = true;
+          this.aimJoystick.angle = Math.atan2(dy, dx);
+          this.aimJoystick.magnitude = normMag;
+
+          // Calcular punto de puntería virtual a ~300px de distancia del jugador
+          const aimDist = 300;
+          const worldAimX = this.player.x + Math.cos(this.aimJoystick.angle) * aimDist;
+          const worldAimY = (this.player.y - 14) + Math.sin(this.aimJoystick.angle) * aimDist;
+
+          // Actualizar puntería del personaje
+          if (this.state === 'playing') {
+            this.player.updateAim(worldAimX, worldAimY);
+          }
+        } else {
+          this.aimJoystick.active = false;
+          this.aimJoystick.magnitude = 0;
+        }
+      };
+
+      const resetAimJoystick = () => {
+        aimTouchId = null;
+        aimStick.style.transform = 'translate(0px, 0px)';
+        aimStick.classList.remove('active');
+        this.aimJoystick.active = false;
+        this.aimJoystick.magnitude = 0;
+      };
+
+      aimZone.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        soundManager.init();
+        const touch = e.changedTouches[0];
+        aimTouchId = touch.identifier;
+        aimStick.classList.add('active');
+        handleAimMove(touch.clientX, touch.clientY);
+      }, { passive: false });
+
+      aimZone.addEventListener('touchmove', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        for (let i = 0; i < e.changedTouches.length; i++) {
+          if (e.changedTouches[i].identifier === aimTouchId) {
+            handleAimMove(e.changedTouches[i].clientX, e.changedTouches[i].clientY);
+            break;
+          }
+        }
+      }, { passive: false });
+
+      aimZone.addEventListener('touchend', (e) => {
+        e.preventDefault();
+        for (let i = 0; i < e.changedTouches.length; i++) {
+          if (e.changedTouches[i].identifier === aimTouchId) {
+            resetAimJoystick();
+            break;
+          }
+        }
+      }, { passive: false });
+
+      aimZone.addEventListener('touchcancel', (e) => {
+        e.preventDefault();
+        resetAimJoystick();
+      }, { passive: false });
+    }
   }
 
   startGame() {
@@ -704,18 +910,39 @@ class DesertGame {
       this.lastDistance10m = current10m;
     }
 
-    // Auto-fire handling: if mouse is pressed or autofire on, aim directly at cursor
+    // Auto-fire handling: if mouse is pressed, autofire on, or aim joystick active
     // En Nivel 4: Si el Rey Fantasma está succionando con su enorme boca, NO podemos disparar
     const canShoot = !(this.ghostKing && this.ghostKing.alive && this.ghostKing.isSuctionActive);
-    if (canShoot && (this.autoFire || this.mouse.isDown)) {
+    const aimJoystickFiring = this.aimJoystick && this.aimJoystick.active;
+
+    if (canShoot && (this.autoFire || this.mouse.isDown || aimJoystickFiring)) {
       this.autoFireTimer += dt;
       const rate = this.player.rapidFireTimer > 0 ? 0.08 : 0.16;
       if (this.autoFireTimer >= rate) {
         this.autoFireTimer = 0;
-        const targetX = this.mouse.inside ? this.mouse.x + this.cameraX : null;
-        const targetY = this.mouse.inside ? this.mouse.y : null;
+        let targetX = null;
+        let targetY = null;
+
+        if (aimJoystickFiring) {
+          // Joystick de puntería: calcular punto de disparo en la dirección del joystick
+          const aimDist = 300;
+          targetX = this.player.x + Math.cos(this.aimJoystick.angle) * aimDist;
+          targetY = (this.player.y - 14) + Math.sin(this.aimJoystick.angle) * aimDist;
+        } else if (this.mouse.inside) {
+          targetX = this.mouse.x + this.cameraX;
+          targetY = this.mouse.y;
+        }
+
         this.player.shoot(soundManager, this.projectiles, this.particles, targetX, targetY);
       }
+    }
+
+    // Actualizar puntería con joystick de apuntado (continuo)
+    if (aimJoystickFiring && this.state === 'playing') {
+      const aimDist = 300;
+      const worldAimX = this.player.x + Math.cos(this.aimJoystick.angle) * aimDist;
+      const worldAimY = (this.player.y - 14) + Math.sin(this.aimJoystick.angle) * aimDist;
+      this.player.updateAim(worldAimX, worldAimY);
     }
 
     // 1. Update Player (passing cameraX for boundary constraints)
